@@ -1,0 +1,229 @@
+---
+title: "Try to Identify Numbat in Noise"
+author: "Harriet Mason"
+date: "07/12/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load package and data
+```{r}
+# cassowaryr
+library(cassowaryr)
+
+#data wrangling
+library(tidyverse)
+
+# pairwise plots
+library(GGally)
+library(plotly)
+
+#data partition 
+library(caret)
+
+# load data
+numbats_raw <- read.csv("numbat.csv")
+
+```
+
+## Between Group Scagnostics
+First calculate the scagnostics on the entire dataset (save data because this takes forever).
+```{r, eval=FALSE}
+# make group data frames
+set.seed(1)
+bignumbatsA <- filter(numbats_raw, group=="A") %>% select(-group)
+bignumbatsB <- filter(numbats_raw, group=="B") %>% select(-group)
+
+#calc_scags on both groups
+bignumbatsA_scags <- calc_scags_wide(bignumbatsA)#, out.rm=FALSE)  
+bignumbatsB_scags <- calc_scags_wide(bignumbatsB)#, out.rm=FALSE)
+
+#combine into a single data frame
+bignumbatsA_scags_long <- bignumbatsA_scags %>% 
+  pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "A_value")
+
+bignumbatsB_scags_long <- bignumbatsB_scags %>% 
+  pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
+
+bignumbats_scags_long <- bignumbatsA_scags_long %>%
+  left_join(bignumbatsB_scags_long, by=c("Var1", "Var2", "scag")) %>%
+  mutate(group_diff = abs(A_value - B_value))
+
+#make wide data
+bignumbats_scags_wide <- bignumbats_scags_long %>%
+  select(c(Var1, Var2, scag, group_diff)) %>%
+  pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
+
+#save data
+saveRDS(bignumbats_scags_wide, "wholesetscags.rds")
+
+```
+
+```{r, eval=FALSE}
+#look at SPLOM of scagnostics
+splom_data <- bignumbats_scags_wide %>%
+  mutate(lab = paste0(Var1, " , ", Var2)) %>%
+  ungroup() %>%
+  mutate(numbat=ifelse(lab == "x7 , x4", TRUE,FALSE)) %>%
+  select(-c(Var1, Var2))
+
+#interactive ggpairs
+p <- ggpairs(splom_data, columns=c(1:11), aes(label=lab, colours=numbat)) +
+  theme_minimal()
+ggplotly(p) 
+```
+
+```{r}
+# top pair for each scag
+top_scags(bignumbats_scags_wide)
+```
+
+Scag Placings:
+- Numbat 1st: Dcor, monotonic, outlying splines
+- Numbat 2nd: Convex, Skinny, Sparse
+- Numbat top 5: Skewed
+- Numbat Nowhere: Euclid, Striated2, Stringy
+
+Does it change with sample/sample size? Yes
+
+Does it change with outlier removal? Yes
+- x7 and x4 how top clumpy 2 difference???
+
+Clumpy2 Specific
+- identifies variable 7 as something interesting but not the combination. 
+- Invites an investigation that looks at only one variable
+- Alternatively could compare groups to the average across all variables? 
+- Still maintains issue that one variable highly influences this scagnsotic, also 
+
+Euclid
+- Doesn't appear at all on euclidean distance
+- also makes me think the clumpy value's sharp drop to 0 influences things like euclidean distance too much
+
+## How much noise do we have on a 500 observation sample
+
+```{r, eval=FALSE}
+#subset variables
+numbats_small <- numbats_raw %>%
+  select(x1,x2,x4,x7, group)
+
+# Set data
+scag_data <- NULL
+
+for(i in seq(20)){
+  # load data
+  set.seed(i)
+  smallset <- createDataPartition(numbats_small$group, p=0.25)$Resample1
+  numbatset <- numbats_small[smallset,]
+  # make group data frames
+  numbatsA <- filter(numbatset, group=="A") %>% select(-group)
+  numbatsB <- filter(numbatset, group=="B") %>% select(-group)
+  
+  #calc_scags on both groups
+  numbatsA_scags <- calc_scags_wide(numbatsA)  
+  numbatsB_scags <- calc_scags_wide(numbatsB)
+  
+  #combine into a single data frame
+  numbatsA_scags_long <- numbatsA_scags %>% 
+    pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "A_value")
+  
+  numbatsB_scags_long <- numbatsB_scags %>% 
+    pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
+  
+  numbats_scags_long <- numbatsA_scags_long %>%
+    left_join(numbatsB_scags_long, by=c("Var1", "Var2", "scag")) %>%
+    mutate(group_diff = abs(A_value - B_value))
+  
+  #make wide data
+  numbats_scags_wide <- numbats_scags_long %>%
+    select(c(Var1, Var2, scag, group_diff)) %>%
+    pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
+  
+  # check 
+  scag_data <- bind_rows(scag_data, numbats_scags_wide)
+}
+
+saveRDS(scag_data, "scagnostic_noise.rds")
+```
+
+
+```{r}
+scag_data <- readRDS("scagnostic_noise.rds")
+bignumbats_scags_wide <- readRDS("wholesetscags.rds")
+
+#tidy true values
+smallsetplots <- c("x2 , x1", "x4 , x1", "x4 , x2", 
+                   "x7 , x1", "x7 , x2", "x7 , x4")
+scag_true <- bignumbats_scags_wide %>% 
+  mutate(lab = paste0(Var1, " , ", Var2)) %>%
+  select(-c(Var1, Var2)) %>%
+  filter(lab %in% smallsetplots)%>%
+  pivot_longer(cols=-lab, names_to = "scag", values_to = "value")
+
+#tidy data
+scag_noise <- scag_data %>% 
+  mutate(lab = paste0(Var1, " , ", Var2)) %>%
+  select(-c(Var1, Var2)) %>%
+  pivot_longer(cols=-lab, names_to = "scag", values_to = "value")
+
+#plot
+ggplot(scag_noise, aes(x=lab, y=value, colour=lab)) +
+  geom_violin()+
+  geom_point(alpha=0.5)+
+  facet_wrap(~scag, scales = "free") +
+  theme_minimal() +
+  geom_point(data = scag_true, colour="black")
+```
+
+Notes
+- checked noise because if the scagnostics are being computed at stages, it would be better to have a smaller sample than the original data set
+- It looks like sparse still has the sample size problem. Convex can technically identify the is also throwing weird values. Treating some as though the alphahull doesnt have an area
+- Splines, and Dcor seem to be the best at identifying the shape
+- Clumpy2 (i have no idea why) and monotonic are also doing an alright job
+- Sparse can "see" the numbat, but it is somewhat unreliable because of its sample size dependency, outlying is similar but the reliability is questionable due to its large variance.
+- check the alphahull area problem
+```{r}
+plot(numbats_raw$x4, numbats_raw$x7)
+
+# check convex value
+#almost 0
+calc_scags(bignumbatsA$x1, bignumbatsA$x2, scags="convex")
+calc_scags(bignumbatsB$x1, bignumbatsB$x2, scags="convex")
+
+#same as numbat
+calc_scags(bignumbatsA$x7, bignumbatsA$x2, scags="convex")
+calc_scags(bignumbatsB$x7, bignumbatsB$x2, scags="convex")
+draw_alphahull(bignumbatsA$x2, bignumbatsA$x7)
+draw_convexhull(bignumbatsA$x2, bignumbatsA$x7)
+draw_alphahull(bignumbatsB$x4, bignumbatsB$x7)
+draw_convexhull(bignumbatsB$x4, bignumbatsB$x7)
+
+#numbat
+calc_scags(bignumbatsA$x7, bignumbatsA$x4, scags="convex")
+calc_scags(bignumbatsB$x7, bignumbatsB$x4, scags="convex")
+draw_alphahull(bignumbatsA$x4, bignumbatsA$x7)
+draw_convexhull(bignumbatsA$x4, bignumbatsA$x7)
+draw_alphahull(bignumbatsB$x4, bignumbatsB$x7)
+draw_convexhull(bignumbatsB$x4, bignumbatsB$x7)
+
+#x1 and x2 have a 0 on "convex" but that shouldnt be true???
+
+draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
+# try with no outlier removal
+draw_convexhull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
+draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE, out.rm=FALSE)
+
+
+```
+- alpha hull in this plot has no fill. why is this happening?
+
+- change distance with (s1 - s2)/(s1 + s2)
+
+# Group vs Whole Data Scagnostics
+```{r}
+
+```
