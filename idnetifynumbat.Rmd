@@ -273,3 +273,17 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE)
 - Convex can also "see" the difference on the whole data set, but it also has high variance on subsets. It does not succeed much here either.
 - convex and clumpy are also very slow to calculate and the tour takes a while and makes my computer very hot.
 
+# Try update Tourr functions to have group options
+Update Splines
+```{r}
+tourr_splines <- function(mat, cl){
+  #this will only work on two groups
+  classes <- unique(cl)
+  group1 <- mat[which(cl==classes[1])]
+  sc_splines(x= mat[,1], y=mat[,2])
+}
+
+```
+
+# Can combinations of scagnostics see the numbat better than a single one?
+
