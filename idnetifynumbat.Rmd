@@ -26,6 +26,9 @@ library(plotly)
 #data partition 
 library(caret)
 
+# add in tourr
+library(tourr)
+
 # load data
 numbats_raw <- read.csv("numbat.csv")
 
@@ -210,8 +213,6 @@ draw_convexhull(bignumbatsA$x4, bignumbatsA$x7)
 draw_alphahull(bignumbatsB$x4, bignumbatsB$x7)
 draw_convexhull(bignumbatsB$x4, bignumbatsB$x7)
 
-#x1 and x2 have a 0 on "convex" but that shouldnt be true???
-
 draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
 # try with no outlier removal
 draw_convexhull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
@@ -223,7 +224,52 @@ draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE, out.rm=FALSE)
 
 - change distance with (s1 - s2)/(s1 + s2)
 
-# Group vs Whole Data Scagnostics
+# Try with Tour
 ```{r}
+#check current method
+# basic guided tourr example
+animate_xy(flea[, 1:6], guided_tour(lda_pp(flea$species)), sphere = TRUE, , col = flea$species)
 
+#try with numbat data
+datapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
+numbat_subset <- numbats_raw[datapartition,]
+animate_xy(numbat_subset[, 1:10], guided_tour(lda_pp(numbat_subset$group)), 
+           sphere = TRUE, , col = numbat_subset$group)
+
+#basically does not differentiate anything
+
+# make matrix version of functions
+tourr_clumpy <- function(mat){
+  sc_clumpy(x= mat[,1], y=mat[,2])
+}
+tourr_splines <- function(mat){
+  sc_splines(x= mat[,1], y=mat[,2])
+}
+tourr_convex <- function(mat){
+  1- sc_convex(x= mat[,1], y=mat[,2])
+}
+
+#first with flea
+animate_xy(flea[, 1:6], guided_tour(tourr_splines), sphere = TRUE, , col = flea$species)
+
+#then with numbat
+animate_xy(numbat_subset[, 1:10], guided_tour(tourr_splines), 
+           sphere = TRUE, , col = numbat_subset$group)
+
+# see if works with just numbat group
+numbat_subset2 <- numbat_subset %>% filter(group=="A")
+#ggplot(numbat_subset2, aes(x=x7, y=x4)) + geom_point()
+
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_splines), sphere = TRUE)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy), sphere = TRUE)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE)
 ```
+
+- This is basically a dead end
+- Makes sense, the functions are being calculated on the entire thing rather than on the two groups, but im not sure it would find the numbat reguardless
+- Even trying with just the data that contains the numbats
+- When only given group A, splines can sepparate the two groups found in x4 most of the time. It also found the numbat shape on its second go, but that may have been a fluke because it didn't find it again.
+- Clumpy can "see" the difference on the whole data set, but struggles a bit more on subsets. The measure seems to struggle a LOT with projection persuit, its esentially useless here lol.
+- Convex can also "see" the difference on the whole data set, but it also has high variance on subsets. It does not succeed much here either.
+- convex and clumpy are also very slow to calculate and the tour takes a while and makes my computer very hot.
+
