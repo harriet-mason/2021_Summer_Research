@@ -91,8 +91,10 @@ p <- ggpairs(splom_data, columns=1:11, ggplot2::aes(label=lab)) +
   theme_minimal()
 ggplotly(p) 
 ```
-
+## Absolute dist
 - Aren'y really any scagnostics where it sits away from the general "trend" of the data. Mostly would need to use individual or combinations of scagnsotics.
+# Scaled Dist
+- Monotonic and dcor kind of do?
 
 # Which individual scagnostics should be used?
 
@@ -101,8 +103,9 @@ ggplotly(p)
 top_scags(bignumbats_scags_wide)
 ```
 
+## Absolute group
 Scag Placings:
-- Numbat 1st: Dcor, monotonic, outlying splines
+- Numbat 1st: clumpy, Dcor, monotonic, outlying splines
 - Numbat 2nd: Convex, Skinny, Sparse
 - Numbat top 5: Skewed
 - Numbat Nowhere: Euclid, Striated2, Stringy
@@ -110,7 +113,7 @@ Scag Placings:
 Does it change with sample/sample size? Yes
 
 Does it change with outlier removal? Yes
-- x7 and x4 how top clumpy 2 difference???
+- x7 and x4 now top clumpy 2 difference???
 
 Clumpy2 Specific
 - identifies variable 7 as something interesting but not the combination. 
@@ -121,6 +124,41 @@ Clumpy2 Specific
 Euclid
 - Doesn't appear at all on euclidean distance
 - also makes me think the clumpy value's sharp drop to 0 influences things like euclidean distance too much
+
+## Scaled group differnce
+Now only Dcor and Splines have x2/x7 on top
+
+### Try with outlier removal
+```{r, eval=FALSE}
+# make group data frames
+bignumbatsA <- filter(numbats_raw, group=="A") %>% select(-group)
+bignumbatsB <- filter(numbats_raw, group=="B") %>% select(-group)
+
+#calc_scags on both groups
+bignumbatsA_scags <- calc_scags_wide(bignumbatsA, out.rm=FALSE)  
+bignumbatsB_scags <- calc_scags_wide(bignumbatsB, out.rm=FALSE)
+
+#combine into a single data frame
+bignumbatsA_scags_long <- bignumbatsA_scags %>% 
+  pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "A_value")
+
+bignumbatsB_scags_long <- bignumbatsB_scags %>% 
+  pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
+
+bignumbats_scags_long <- bignumbatsA_scags_long %>%
+  left_join(bignumbatsB_scags_long, by=c("Var1", "Var2", "scag")) %>%
+  mutate(group_diff = (A_value - B_value)/(A_value + B_value))
+
+#make wide data
+bignumbats_scags_wide_out <- bignumbats_scags_long %>%
+  select(c(Var1, Var2, scag, group_diff)) %>%
+  pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
+
+#save data
+saveRDS(bignumbats_scags_wide_out, "wholesetscags_outlier.rds")
+
+```
+
 
 ## How much noise do we have on a 500 observation sample
 
