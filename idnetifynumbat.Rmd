@@ -159,6 +159,32 @@ saveRDS(bignumbats_scags_wide_out, "wholesetscags_outlier.rds")
 
 ```
 
+### Redo SPLOM and top-scags checks
+```{r}
+bignumbats_scags_wide_out <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/wholesetscags_outliers.rds")
+
+#look at SPLOM of scagnostics
+splom_data_out <- bignumbats_scags_wide_out %>%
+  mutate(lab = paste0(Var1, " , ", Var2)) %>%
+  ungroup() %>%
+  mutate(numbat=ifelse(lab == "x7 , x4", TRUE, FALSE)) %>%
+  select(-c(Var1, Var2))
+
+#interactive ggpairs
+p <- ggpairs(splom_data_out, columns=1:11, ggplot2::aes(label=lab)) +
+  theme_minimal()
+ggplotly(p) 
+```
+
+```{r}
+# top pair for each scag
+top_scags(bignumbats_scags_wide_out)
+```
+- after keeping outliers, it is still only dcor and splines that have numbat view on top
+- that being said, the splom shows that it is harder to identify splines
+- maybe should try using dcor instead of splines, it is more consistent?
+- clumpy2 is also behaving really weirdly. I think it is trying to divide by for several of them, rest just return a 1 tho for some reason.
+- skewed, sparse and convex also seem to be able to kind of see it, so maybe i should also try those.
 
 ## How much noise do we have on a 500 observation sample
 
@@ -192,7 +218,7 @@ for(i in seq(20)){
   
   numbats_scags_long <- numbatsA_scags_long %>%
     left_join(numbatsB_scags_long, by=c("Var1", "Var2", "scag")) %>%
-    mutate(group_diff = abs(A_value - B_value))
+    mutate(group_diff = (A_value - B_value)/(A_value + B_value))
   
   #make wide data
   numbats_scags_wide <- numbats_scags_long %>%
@@ -235,47 +261,16 @@ ggplot(scag_noise, aes(x=lab, y=value, colour=lab)) +
   geom_point(data = scag_true, colour="black")
 ```
 
-Notes
+abs distance notes
 - checked noise because if the scagnostics are being computed at stages, it would be better to have a smaller sample than the original data set
 - It looks like sparse still has the sample size problem. Convex can technically identify the is also throwing weird values. Treating some as though the alphahull doesnt have an area
 - Splines, and Dcor seem to be the best at identifying the shape
 - Clumpy2 (i have no idea why) and monotonic are also doing an alright job
 - Sparse can "see" the numbat, but it is somewhat unreliable because of its sample size dependency, outlying is similar but the reliability is questionable due to its large variance.
 - check the alphahull area problem
-```{r}
-plot(numbats_raw$x4, numbats_raw$x7)
 
-# check convex value
-#almost 0
-calc_scags(bignumbatsA$x1, bignumbatsA$x2, scags="convex")
-calc_scags(bignumbatsB$x1, bignumbatsB$x2, scags="convex")
-
-#same as numbat
-calc_scags(bignumbatsA$x7, bignumbatsA$x2, scags="convex")
-calc_scags(bignumbatsB$x7, bignumbatsB$x2, scags="convex")
-draw_alphahull(bignumbatsA$x2, bignumbatsA$x7)
-draw_convexhull(bignumbatsA$x2, bignumbatsA$x7)
-draw_alphahull(bignumbatsB$x4, bignumbatsB$x7)
-draw_convexhull(bignumbatsB$x4, bignumbatsB$x7)
-
-#numbat
-calc_scags(bignumbatsA$x7, bignumbatsA$x4, scags="convex")
-calc_scags(bignumbatsB$x7, bignumbatsB$x4, scags="convex")
-draw_alphahull(bignumbatsA$x4, bignumbatsA$x7)
-draw_convexhull(bignumbatsA$x4, bignumbatsA$x7)
-draw_alphahull(bignumbatsB$x4, bignumbatsB$x7)
-draw_convexhull(bignumbatsB$x4, bignumbatsB$x7)
-
-draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
-# try with no outlier removal
-draw_convexhull(numbats_raw$x2, numbats_raw$x1, fill=TRUE)
-draw_alphahull(numbats_raw$x2, numbats_raw$x1, fill=TRUE, out.rm=FALSE)
-
-
-```
-- alpha hull in this plot has no fill. why is this happening?
-
-- change distance with (s1 - s2)/(s1 + s2)
+relative distance notes
+- seems like only dcor and sparse can see it... kind of?
 
 # Try with Tour
 ```{r}
