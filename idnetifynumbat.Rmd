@@ -31,7 +31,7 @@ library(tourr)
 
 # load data
 numbats_raw <- read.csv("numbat.csv")
-
+numbats_raw[,1:10] <- rescale(numbats_raw[,1:10])
 ```
 
 # Whole Data SPLOM
@@ -272,13 +272,9 @@ abs distance notes
 relative distance notes
 - seems like only dcor and sparse can see it... kind of?
 
-# Try with Tour
+# Tour with absolute value distnace
 ```{r}
-#check current method
-# basic guided tourr example
-animate_xy(flea[, 1:6], guided_tour(lda_pp(flea$species)), sphere = TRUE, , col = flea$species)
-
-#try with numbat data
+#try with numbat data and lda 
 datapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
 numbat_subset <- numbats_raw[datapartition,]
 animate_xy(numbat_subset[, 1:10], guided_tour(lda_pp(numbat_subset$group)), 
@@ -296,21 +292,30 @@ tourr_splines <- function(mat){
 tourr_convex <- function(mat){
   1- sc_convex(x= mat[,1], y=mat[,2])
 }
-
-#first with flea
-animate_xy(flea[, 1:6], guided_tour(tourr_splines), sphere = TRUE, , col = flea$species)
-
-#then with numbat
-animate_xy(numbat_subset[, 1:10], guided_tour(tourr_splines), 
-           sphere = TRUE, , col = numbat_subset$group)
+tourr_dcor <- function(mat){
+  sc_dcor(x= mat[,1], y=mat[,2])
+}
+tourr_sparse <- function(mat){
+  sc_sparse(x= mat[,1], y=mat[,2])
+}
+tourr_monotonic <- function(mat){
+  sc_monotonic(x= mat[,1], y=mat[,2])
+}
+tourr_outlying <- function(mat){
+  1- sc_outlying(x= mat[,1], y=mat[,2])
+}
 
 # see if works with just numbat group
 numbat_subset2 <- numbat_subset %>% filter(group=="A")
-#ggplot(numbat_subset2, aes(x=x7, y=x4)) + geom_point()
 
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_splines), sphere = TRUE)
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy), sphere = TRUE)
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE)
+# does it see the numbat-ish?
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_splines), sphere = TRUE) #sometimes?
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_dcor), sphere = TRUE) # sometimes?
+# animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy), sphere = TRUE) #takes too long
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE) #no
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_sparse), sphere = TRUE)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_monotonic), sphere = TRUE)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_outlying), sphere = TRUE)
 ```
 
 - This is basically a dead end
@@ -321,10 +326,10 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE)
 - Convex can also "see" the difference on the whole data set, but it also has high variance on subsets. It does not succeed much here either.
 - convex and clumpy are also very slow to calculate and the tour takes a while and makes my computer very hot.
 
-# Try update Tourr functions to have group options
-Update Splines
+# Tour with relative distances
+
 ```{r}
-tourr_splines <- function(cl){
+tourr_dcor <- function(cl){
   #this will only work on two groups
   classes <- unique(cl)
   #only work for 2, 
@@ -336,8 +341,8 @@ tourr_splines <- function(cl){
     group2 <- mat[which(cl==classes[2]),]
   
     #scag value
-    val1 <- sc_splines(x= group1[,1], y= group1[,2])
-    val2 <- sc_splines(x= group2[,1], y= group2[,2])
+    val1 <- sc_dcor(x= group1[,1], y= group1[,2])
+    val2 <- sc_dcor(x= group2[,1], y= group2[,2])
   
     #final value (s1 - s2)/(s1 + s2)
     (val1 - val2)/(val1 + val2)
@@ -345,16 +350,13 @@ tourr_splines <- function(cl){
 }
 
 #try tourr with this
-animate_xy(numbat_subset[, 1:10], guided_tour(tourr_splines(cl=numbat_subset$group)), 
+animate_xy(numbat_subset[, 1:10], guided_tour(tourr_dcor(cl=numbat_subset$group)), 
            sphere = TRUE, , col = numbat_subset$group)
 
 ```
 
 - change distance with (s1 - s2)/(s1 + s2)
 - this basically is just noise
-- I want to check how the area around numbat looks so ill try a local tourr
+- it isnt moving towards anthing.
 
-```{r}
-animate_xy(numbat_subset[, 1:10], local_tour(start = c(,2)))
-```
 
