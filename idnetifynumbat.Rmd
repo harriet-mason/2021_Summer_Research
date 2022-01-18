@@ -34,14 +34,15 @@ numbats_raw <- read.csv("numbat.csv")
 
 ```
 
-SPLOM
+# Whole Data SPLOM
 ```{r}
-ggpairs(numbats_raw, columns=1:11, ggplot2::aes(colour=group, alpha=0.4))
+ggpairs(numbats_raw, columns=1:11, ggplot2::aes(colour=group, alpha=0.1))
 ```
-- difficult to see anything because the blue group is over the top. Maybe with a smaller sample or soemthing I could see it. Can kind of tell its there though.
+- difficult to see anything because the blue group is over the top. Maybe with a smaller sample or something I could see it. Can kind of tell its there though.
 
-## Between Group Scagnostics
+## Calculate between group differences in all scagnostics
 First calculate the scagnostics on the entire dataset (save data because this takes forever).
+
 ```{r, eval=FALSE}
 # make group data frames
 set.seed(1)
@@ -61,7 +62,7 @@ bignumbatsB_scags_long <- bignumbatsB_scags %>%
 
 bignumbats_scags_long <- bignumbatsA_scags_long %>%
   left_join(bignumbatsB_scags_long, by=c("Var1", "Var2", "scag")) %>%
-  mutate(group_diff = abs(A_value - B_value))
+  mutate(group_diff = (A_value - B_value)/(A_value + B_value))
 
 #make wide data
 bignumbats_scags_wide <- bignumbats_scags_long %>%
@@ -73,21 +74,27 @@ saveRDS(bignumbats_scags_wide, "wholesetscags.rds")
 
 ```
 
-```{r, eval=FALSE}
+# Which Combinations of Scagnsotics could be used
 
+```{r}
+bignumbats_scags_wide <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/wholesetscags.rds")
 
 #look at SPLOM of scagnostics
 splom_data <- bignumbats_scags_wide %>%
   mutate(lab = paste0(Var1, " , ", Var2)) %>%
   ungroup() %>%
-  mutate(numbat=ifelse(lab == "x7 , x4", TRUE,FALSE)) %>%
+  mutate(numbat=ifelse(lab == "x7 , x4", TRUE, FALSE)) %>%
   select(-c(Var1, Var2))
 
 #interactive ggpairs
-p <- ggpairs(splom_data, columns=c(1:11), aes(label=lab, colours=numbat)) +
+p <- ggpairs(splom_data, columns=1:11, ggplot2::aes(label=lab)) +
   theme_minimal()
 ggplotly(p) 
 ```
+
+- Aren'y really any scagnostics where it sits away from the general "trend" of the data. Mostly would need to use individual or combinations of scagnsotics.
+
+# Which individual scagnostics should be used?
 
 ```{r}
 # top pair for each scag
