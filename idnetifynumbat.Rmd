@@ -313,9 +313,9 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_splines), sphere = TRUE) #s
 animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_dcor), sphere = TRUE) # sometimes?
 # animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy), sphere = TRUE) #takes too long
 animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_convex), sphere = TRUE) #no
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_sparse), sphere = TRUE)
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_monotonic), sphere = TRUE)
-animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_outlying), sphere = TRUE)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_sparse), sphere = TRUE) #no
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_monotonic), sphere = TRUE) #kind of (splits clusters)
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_outlying), sphere = TRUE) #no
 ```
 
 - This is basically a dead end
