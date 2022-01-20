@@ -94,23 +94,26 @@ saveRDS(bignumbats_scags_wide_2, "wholescags_abs_out.rds")
 Even though removing outliers is more computationally heavy, if there is enough of a gap might be worth doing calc_scags instead of sc_
 
 ```{r, eval=FALSE}
+# make group data frames
+bignumbatsA <- filter(numbats_raw, group=="A") %>% select(-group)
+bignumbatsB <- filter(numbats_raw, group=="B") %>% select(-group)
+
 #calc_scags on both groups
 bignumbatsA_scags_outrm <- calc_scags_wide(bignumbatsA, global_rng=c(0,1))  
 bignumbatsB_scags_outrm <- calc_scags_wide(bignumbatsB, global_rng=c(0,1))
 
 #combine into a single data frame
-bignumbatsA_scags_outrm_long <- bignumbatsA_scags %>% 
+bignumbatsA_scags_outrm_long <- bignumbatsA_scags_outrm %>% 
   pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "A_value")
 
-bignumbatsB_scags_outrm_long <- bignumbatsB_scags %>% 
+bignumbatsB_scags_outrm_long <- bignumbatsB_scags_outrm %>% 
   pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
 
-
+#RELATIVE DISTANCE
 bignumbats_scags_long_dist3 <- bignumbatsA_scags_outrm_long %>%
   left_join(bignumbatsB_scags_outrm_long, by=c("Var1", "Var2", "scag")) %>%
   mutate(group_diff = (A_value - B_value)/(A_value + B_value))
-
-#make wide data
+  # wide data
 bignumbats_scags_wide_3 <- bignumbats_scags_long_dist3 %>%
   select(c(Var1, Var2, scag, group_diff)) %>%
   pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
@@ -122,9 +125,7 @@ saveRDS(bignumbats_scags_wide_3, "wholescags_int_outrm.rds")
 bignumbats_scags_long_dist4 <- bignumbatsA_scags_outrm_long %>%
   left_join(bignumbatsB_scags_outrm_long, by=c("Var1", "Var2", "scag")) %>%
   mutate(group_diff = abs(A_value - B_value))
-
-
-         #make wide data
+  #make wide data
 bignumbats_scags_wide_4 <- bignumbats_scags_long_dist4 %>%
   select(c(Var1, Var2, scag, group_diff)) %>%
   pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
@@ -270,8 +271,8 @@ scagnoise_calc <- function(n, out.rm, intdist){
 
 scag_noise_1 <- scagnoise_calc(20, FALSE, TRUE)
 scag_noise_2 <- scagnoise_calc(20, FALSE, FALSE)
-scag_noise_3 <- scagnoise_calc(20, TRUE, TRUE)
-scag_noise_4 <- scagnoise_calc(20, TRUE, FALSE)
+scag_noise_3 <- scagnoise_calc(20, out.rm= TRUE, intdist = TRUE)
+scag_noise_4 <- scagnoise_calc(20, out.rm = TRUE, intdist = FALSE)
 
 saveRDS(scag_noise_1, "scagnoise_int_out.rds")
 saveRDS(scag_noise_2, "scagnoise_abs_out.rds")
@@ -281,10 +282,8 @@ saveRDS(scag_noise_4, "scagnoise_abs_outrm.rds")
 
 
 ```{r}
-scag_noise_1 <- readRDS("scagnoise_int_out.rds")
-bignumbats_scags_wide_1 <- readRDS("wholesetscags.rds")
-
-generateplot <- function(scag_data, bignumbats_scags_wide){
+# Plot Function
+generateplot <- function(scag_data, bignumbats_scags_wide, title){
   #tidy true values
   smallsetplots <- c("x2 , x1", "x4 , x1", "x4 , x2", 
                      "x7 , x1", "x7 , x2", "x7 , x4")
@@ -306,10 +305,31 @@ generateplot <- function(scag_data, bignumbats_scags_wide){
     geom_point(alpha=0.5)+
     facet_wrap(~scag, scales = "free") +
     theme_minimal() +
-    geom_point(data = scag_true, colour="black")
+    geom_point(data = scag_true, colour="black") +
+    ggtitle(title)
 }
 
-gen
+#Load Data
+scag_noise_1 <- readRDS("scagnoise_int_out.rds")
+bignumbats_scags_wide_1 <- readRDS("wholescags_int_out.rds")
+scag_noise_2 <- readRDS("scagnoise_abs_out.rds")
+bignumbats_scags_wide_2 <- readRDS("wholescags_abs_out.rds")
+scag_noise_3 <- readRDS("scagnoise_int_outrm.rds")
+bignumbats_scags_wide_3 <- readRDS("wholescags_int_outrm.rds")
+scag_noise_4 <- readRDS("scagnoise_abs_outrm.rds")
+bignumbats_scags_wide_4 <- readRDS("wholescags_abs_outrm.rds")
+
+# Generate Plots
+p1 <- generateplot(scag_noise_1, bignumbats_scags_wide_1, "Relative Distance and No Outlier Removal")
+p2 <- generateplot(scag_noise_2, bignumbats_scags_wide_2, "Absolute Distance and No Outlier Removal")
+p3 <- generateplot(scag_noise_3, bignumbats_scags_wide_3, "Relative Distance with Outlier Removal")
+p4 <- generateplot(scag_noise_4, bignumbats_scags_wide_4, "Absolute Distance with Outlier Removal")
+
+# Save plots
+ggsave("figures/scagcomparison1.png", p1)
+ggsave("figures/scagcomparison2.png", p2)
+ggsave("figures/scagcomparison3.png", p3)
+ggsave("figures/scagcomparison4.png", p4)
 ```
 
 abs distance notes
@@ -410,4 +430,58 @@ animate_xy(numbat_subset[, 1:10], guided_tour(tourr_dcor(cl=numbat_subset$group)
 - this basically is just noise
 - it isnt moving towards anthing.
 
+# Try again after comparing distance metrics and outlier removal
+- now using a global range (only relevant for scagnostic measures)
+- also will try a different optimisation technique 
 
+## Splines 
+The measures biggest gap was with absolute difference, the relative difference was not really anything? (no wonder it struggled lol)
+There was not much of a difference in outerlier removal
+Also did a different optimisation method
+```{r}
+# first check one group
+tourr_splines <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- sc_splines(x = group1[,1], y = group1[,2])
+    val2 <- sc_splines(x = group2[,1], y = group2[,2])
+  
+    #final value (s1 - s2)/(s1 + s2)
+    abs(val1-val2)
+  }
+}
+
+animate_xy(numbat_subset[, 1:10], guided_tour(tourr_splines(cl=numbat_subset$group)), 
+           sphere = TRUE, , col = numbat_subset$group)
+```
+
+## Clumpy2
+```{r}
+datapartition2 <- createDataPartition(numbats_raw$group, p=0.1)$Resample1
+numbat_subset2 <- numbats_raw[datapartition2,]
+
+# first check one group
+tourr_clumpy <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- calc_scags(x= group1[,1], y= group1[,2], scags="clumpy2")$clumpy2
+    val2 <- calc_scags(x= group2[,1], y= group2[,2], scags="clumpy2")$clumpy2
+    
+    #final val
+    abs(val1-val2)
+  }
+}
+
+animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy(cl=numbat_subset2$group)), 
+           sphere = TRUE, , col = numbat_subset2$group)
+```
