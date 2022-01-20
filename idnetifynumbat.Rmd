@@ -399,7 +399,16 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_outlying), sphere = TRUE) #
 
 # Tour with relative distances
 
-```{r}
+```{r} 
+#maxdist tourr:::
+function (data, center = FALSE) 
+{
+    max(sqrt(rowSums(data^2)))
+}
+tourr:::max_dist
+
+
+  
 tourr_dcor <- function(cl){
   #this will only work on two groups
   classes <- unique(cl)
@@ -421,8 +430,7 @@ tourr_dcor <- function(cl){
 }
 
 #try tourr with this
-animate_xy(numbat_subset[, 1:10], guided_tour(tourr_dcor(cl=numbat_subset$group)), 
-           sphere = TRUE, , col = numbat_subset$group)
+animate_xy(numbat_subset[, 1:10], guided_tour(tourr_dcor(cl=numbat_subset$group)), col = numbat_subset$group)
 
 ```
 
