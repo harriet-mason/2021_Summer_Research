@@ -148,22 +148,53 @@ saveRDS(bignumbats_scags_wide_4, "wholescags_abs_outrm.rds")
 
 ## Try Relative Distance with a Threshold
 ```{r}
+#load data
+bignumbatsA_scags_outrm <- readRDS("bigrawscagsA_outrm.rds")
+bignumbatsB_scags_outrm <- readRDS("bigrawscagsB_outrm.rds")
+
+# set upper range of "nothing" group functions
 bignumbatsA_scags_outrm_long <- bignumbatsA_scags_outrm %>% 
   pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "A_value")
 
 bignumbatsB_scags_outrm_long <- bignumbatsB_scags_outrm %>% 
   pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
 
-#RELATIVE DISTANCE
-bignumbats_scags_long_dist3 <- bignumbatsA_scags_outrm_long %>%
+# Threshold function
+scag_threshold <- function(scagnostic, value){
+  #set thresholds
+  thresholds <- list(
+    "clumpy2" = 0.5,
+    "convex" = 0.59, # numbat identified by a small value (actually invert)
+    "dcor" = 0.06, 
+    "monotonic" = 0.06,
+    "outlying"= 0.25, # numbat is identified by a small value
+    "skewed" = 0.65, # numbat is identified by a small value
+    "skinny" = 0.5, 
+    "sparse" = 0.016, # numbat is identified by a small value
+    "splines" = 0.02,
+    "striated2" = 0.1,
+    "stringy" = 0.75
+  )
+  #inverse values
+  
+  #return value
+  if (scagnsotic=="convex") ifelse(A_value > thesholds[scagnostic], 0, A_value)
+  else ifelse(A_value < thesholds[scagnostic], 0, A_value)
+  
+}
+
+# Compute Data
+bignumbats_scags_long_dist <- bignumbatsA_scags_outrm_long %>%
   left_join(bignumbatsB_scags_outrm_long, by=c("Var1", "Var2", "scag")) %>%
-          # set threshold
+  # Replace with threshold values
   mutate(A_value = ifelse(A_value < 0.1, 0, A_value),
          B_value = ifelse(B_value < 0.1, 0, B_value),
          # calc group difference
          group_diff = (A_value - B_value)/(A_value + B_value))
-  # wide data
-bignumbats_scags_wide_3 <- bignumbats_scags_long_dist3 %>%
+          #what if both a and b are 0
+
+
+bignumbats_scags_wide <- bignumbats_scags_long_dist%>%
   select(c(Var1, Var2, scag, group_diff)) %>%
   pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
 
@@ -226,7 +257,7 @@ Now only Dcor and Splines have x2/x7 on top
 
 ### Redo SPLOM and top-scags checks
 ```{r}
-bignumbats_scags_wide_out <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/wholesetscags_outliers.rds")
+bignumbats_scags_wide_out <- readRDS("wholesetscags_outliers.rds")
 
 #look at SPLOM of scagnostics
 splom_data_out <- bignumbats_scags_wide_out %>%
