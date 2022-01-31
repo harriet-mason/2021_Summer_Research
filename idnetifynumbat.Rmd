@@ -160,7 +160,7 @@ bignumbatsB_scags_outrm_long <- bignumbatsB_scags_outrm %>%
   pivot_longer(cols=-c(Var1, Var2), names_to = "scag", values_to = "B_value")
 
 # Threshold function
-scag_threshold <- function(scagnostic, value){
+scag_threshold <- function(scag, value){
   #set thresholds
   thresholds <- list(
     "clumpy2" = 0.5,
@@ -178,8 +178,8 @@ scag_threshold <- function(scagnostic, value){
   #inverse values
   
   #return value
-  if (scagnsotic=="convex") ifelse(A_value > thesholds[scagnostic], 0, A_value)
-  else ifelse(A_value < thesholds[scagnostic], 0, A_value)
+  if (scag=="convex") value #ifelse(value > thresholds[scag], 0, value)
+  else ifelse(value < thresholds[scag], 0, value)
   
 }
 
@@ -187,16 +187,19 @@ scag_threshold <- function(scagnostic, value){
 bignumbats_scags_long_dist <- bignumbatsA_scags_outrm_long %>%
   left_join(bignumbatsB_scags_outrm_long, by=c("Var1", "Var2", "scag")) %>%
   # Replace with threshold values
-  mutate(A_value = ifelse(A_value < 0.1, 0, A_value),
-         B_value = ifelse(B_value < 0.1, 0, B_value),
-         # calc group difference
-         group_diff = (A_value - B_value)/(A_value + B_value))
-          #what if both a and b are 0
+  mutate(A_value = scag_threshold(scag, A_value),
+         B_value = scag_threshold(scag, B_value),
+         # calc group difference (note if both are 0)
+         group_diff = ifelse((A_value + B_value)==0, 0, (A_value - B_value)/(A_value + B_value))
+  )
 
 
 bignumbats_scags_wide <- bignumbats_scags_long_dist%>%
   select(c(Var1, Var2, scag, group_diff)) %>%
   pivot_wider(id_cols=c(Var1, Var2), names_from=scag, values_from = group_diff)
+
+#visualise
+
 
 ```
 
