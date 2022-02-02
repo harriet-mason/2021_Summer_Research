@@ -29,6 +29,9 @@ library(caret)
 # add in tourr
 library(tourr)
 
+#ferrn to visualise optimisation 
+library(ferrn)
+
 # load data
 numbats_raw <- read.csv("numbat.csv")
 numbats_raw[,1:10] <- rescale(numbats_raw[,1:10])
@@ -512,14 +515,16 @@ There was not much of a difference in outerlier removal
 Also did a different optimisation method
 ```{r}
 # first check one group
-tourr_splines <- function(cl){
+tourr_splines_group <- function(cl){
   classes <- unique(cl)
   function(mat){
+    print(dim(mat))
     #each matrix group
     group1 <- mat[which(cl==classes[1]),]
     group2 <- mat[which(cl==classes[2]),]
   
     #scag value
+    print(dim(group1))
     val1 <- sc_splines(x = group1[,1], y = group1[,2])
     val2 <- sc_splines(x = group2[,1], y = group2[,2])
   
@@ -527,9 +532,6 @@ tourr_splines <- function(cl){
     abs(val1-val2)
   }
 }
-
-animate_xy(numbat_subset[, 1:10], guided_tour(tourr_splines(cl=numbat_subset$group)), 
-           sphere = TRUE, , col = numbat_subset$group)
 ```
 
 ## Clumpy2
@@ -561,11 +563,8 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy(cl=numbat_subset2$gr
 
 # Try to Visualise Optimisation
 ```{r, splines check}
-#load ferrn library
-library(ferrn)
-
 #data
-atapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
+datapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
 numbat_subset <- numbats_raw[datapartition,]
 numbat_subset2 <- numbat_subset %>% filter(group=="A")
 
@@ -574,11 +573,67 @@ tourr_splines <- function(mat){
   sc_splines(x= mat[,1], y=mat[,2])
 }
 
-# does it see the numbat-ish?
 
-animate(numbat_subset2[, 1:10],
-        tour_path = guided_tour(tourr_splines),
-        display = display_xy())
+#try example with holes
+#code from sherry's github
+set.seed(123456)
+holes_1d_better <- animate_dist(boa5, tour_path = guided_tour(holes(), 
+                                                              d = 1, 
+                                                              search_f =  search_better),
+                                rescale = FALSE)
+
+holes_1d_better %>% get_best()
+
+holes_1d_better %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()
+
+#try with splines one group
+set.seed(8) #one of the seeds before 8 sepparated out x7 (half did it)
+splines_2d_geodesic <- animate_xy(numbat_subset2[, 1:10],
+                                tour_path = guided_tour(tourr_splines))
+                                #search_f =  search_better)
+
+
+splines_2d_geodesic %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()
+
+#try with splines, 2 groups
+set.seed(8)
+splines_2d_geodesic_group <- animate_xy(numbat_subset[, 1:10],
+                                tour_path = guided_tour(tourr_splines_group(cl=numbat_subset$group)),
+                                col = numbat_subset$group)
+
+splines_2d_geodesic_group %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()
+
+#try using search_better
+set.seed(8)
+splines_2d_better_group <- animate_xy(numbat_subset[, 1:10],
+                                tour_path = guided_tour(tourr_splines_group(cl=numbat_subset$group)),
+                                col = numbat_subset$group,
+                                search_f =  search_better)
+
+splines_2d_better_group %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()
+
+#compare geoskedastic and better
+bind_rows(splines_2d_geodesic_group, splines_2d_better_group) %>%
+  #bind_theoretical(matrix(c(0, 0, 0, 1, 0, 0, 1, 0, 0, 0), nrow = 10),
+  #                 index = tourr_splines_group(cl=numbat_subset$group), 
+  #                 raw_data = numbat_subset[, 1:10]) %>% 
+  explore_space_pca(group = method, details = TRUE)  +
+  scale_color_discrete_botanical()
+
+bind_rows(holes_1d_geo, holes_1d_better) %>%
+  #bind_theoretical(matrix(c(0, 1, 0, 0, 0), nrow = 5),
+  #                 index = tourr::holes(), raw_data = boa5) %>% 
+  explore_space_pca(group = method, details = TRUE)  +
+  scale_color_discrete_botanical()
+
 
 ```
 
