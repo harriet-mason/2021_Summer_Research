@@ -559,9 +559,10 @@ animate_xy(numbat_subset2[, 1:10], guided_tour(tourr_clumpy(cl=numbat_subset2$gr
 ```
 
 
-# Try to Visualise Optimisation
+# Splines: Try to Visualise Optimisation
 ```{r, splines check}
 #data
+set.seed(123456)
 datapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
 numbat_subset <- numbats_raw[datapartition,]
 numbat_subset2 <- numbat_subset %>% filter(group=="A")
@@ -640,3 +641,26 @@ bind_rows(holes_1d_geo, holes_1d_better) %>%
 
 ```
 
+# Other Scagnsotics: Try to Visualise Optimisation
+```{r}
+#data
+datapartition <- createDataPartition(numbats_raw$group, p=0.2)$Resample1
+numbat_subset <- numbats_raw[datapartition,]
+numbat_subset2 <- numbat_subset %>% filter(group=="A")
+
+# matrix version of function
+tourr_dcor <- function(mat){
+  sc_dcor(x= mat[,1], y=mat[,2])
+}
+
+#dcor
+set.seed(8) 
+dcor_geodesic <- animate_xy(numbat_subset2[, 1:10],
+                                tour_path = guided_tour(tourr_dcor))
+
+
+dcor_geodesic %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()
+
+```
