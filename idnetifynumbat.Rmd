@@ -518,13 +518,11 @@ Also did a different optimisation method
 tourr_splines_group <- function(cl){
   classes <- unique(cl)
   function(mat){
-    print(dim(mat))
     #each matrix group
     group1 <- mat[which(cl==classes[1]),]
     group2 <- mat[which(cl==classes[2]),]
   
     #scag value
-    print(dim(group1))
     val1 <- sc_splines(x = group1[,1], y = group1[,2])
     val2 <- sc_splines(x = group2[,1], y = group2[,2])
   
@@ -574,30 +572,18 @@ tourr_splines <- function(mat){
 }
 
 
-#try example with holes
-#code from sherry's github
-set.seed(123456)
-holes_1d_better <- animate_dist(boa5, tour_path = guided_tour(holes(), 
-                                                              d = 1, 
-                                                              search_f =  search_better),
-                                rescale = FALSE)
 
-holes_1d_better %>% get_best()
-
-holes_1d_better %>% 
-  explore_trace_interp() + 
-  scale_color_continuous_botanical()
-
-#try with splines one group
+#try ferrn with splines one group
 set.seed(8) #one of the seeds before 8 sepparated out x7 (half did it)
 splines_2d_geodesic <- animate_xy(numbat_subset2[, 1:10],
                                 tour_path = guided_tour(tourr_splines))
                                 #search_f =  search_better)
 
 
-splines_2d_geodesic %>% 
+p1 <- splines_2d_geodesic %>% 
   explore_trace_interp() + 
-  scale_color_continuous_botanical()
+  scale_color_continuous_botanical() + ggtitle("Splines: Geodesic Search, Group A Only")
+ggsave("figures/ferrn_explore_trace_1.png", p1)
 
 #try with splines, 2 groups
 set.seed(8)
@@ -605,9 +591,10 @@ splines_2d_geodesic_group <- animate_xy(numbat_subset[, 1:10],
                                 tour_path = guided_tour(tourr_splines_group(cl=numbat_subset$group)),
                                 col = numbat_subset$group)
 
-splines_2d_geodesic_group %>% 
+p2 <-splines_2d_geodesic_group %>% 
   explore_trace_interp() + 
-  scale_color_continuous_botanical()
+  scale_color_continuous_botanical()+ ggtitle("Splines: Geodesic Search")
+ggsave("figures/ferrn_explore_trace_2.png", p2)
 
 #try using search_better
 set.seed(8)
@@ -616,11 +603,28 @@ splines_2d_better_group <- animate_xy(numbat_subset[, 1:10],
                                 col = numbat_subset$group,
                                 search_f =  search_better)
 
-splines_2d_better_group %>% 
+p3 <- splines_2d_better_group %>% 
   explore_trace_interp() + 
-  scale_color_continuous_botanical()
+  scale_color_continuous_botanical()+ ggtitle("Splines: Better Search")
+ggsave("figures/ferrn_explore_trace_3.png", p3)
 
-#compare geoskedastic and better
+#and finally search better random
+set.seed(8)
+splines_2d_better_random_group <- animate_xy(numbat_subset[, 1:10],
+                                tour_path = guided_tour(tourr_splines_group(cl=numbat_subset$group)),
+                                col = numbat_subset$group,
+                                search_f =  search_better_random)
+
+p4 <- splines_2d_better_random_group %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical()+ ggtitle("Splines: Search Better Random")
+ggsave("figures/ferrn_explore_trace_4.png", p4)
+p4
+```
+
+# Explore PCA space returns errors
+```{r}
+#compare optimisation methods on PCA space
 bind_rows(splines_2d_geodesic_group, splines_2d_better_group) %>%
   #bind_theoretical(matrix(c(0, 0, 0, 1, 0, 0, 1, 0, 0, 0), nrow = 10),
   #                 index = tourr_splines_group(cl=numbat_subset$group), 
@@ -633,7 +637,6 @@ bind_rows(holes_1d_geo, holes_1d_better) %>%
   #                 index = tourr::holes(), raw_data = boa5) %>% 
   explore_space_pca(group = method, details = TRUE)  +
   scale_color_discrete_botanical()
-
 
 ```
 
