@@ -137,6 +137,21 @@ for (i in seq(5)){
 }
 ```
 
+```{r}
+#delete later, messing around with the settings
+set.seed(2)
+convex_geodesic <- animate_xy(feature_vs_noise[1:5],
+                                tour_path = guided_tour(convex_group(feature_vs_noise$group)),
+                                #max.tries=10,
+                                delta=1, #0.5 to 1 have found it. (1.5 and 0.01 didnt)
+                                col = feature_vs_noise$group)
+
+convex_geodesic %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("Convex: Feature vs Noise, seed", i))
+```
+
 ```{r, Skinny}
 
 ```
