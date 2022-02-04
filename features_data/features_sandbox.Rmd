@@ -1,0 +1,282 @@
+---
+title: "Find Features Stuff"
+author: "Harriet Mason"
+date: "04/02/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, loadlibraries}
+library(tidyverse)
+library(cassowaryr)
+library(tourr)
+library(ferrn)
+```
+
+
+# Feature Vs Noise
+## Simulate Data
+```{r}
+# set seed
+set.seed(2020)
+
+# get L-shape data
+lshape <- features %>% 
+  filter(feature=="l-shape")
+
+# make tibble group a
+feature_vs_noise_A <- tibble(x1 = 2.5* cassowaryr:::unitize(lshape$x),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = 2.5* cassowaryr:::unitize(lshape$y),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("A",100)
+                           )
+
+# Make tibble group b
+feature_vs_noise_B <- tibble(x1 = rnorm(100, 0.5, 1),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = rnorm(100, 0.5, 1),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("B",100)
+                           )
+
+
+# combine tibbles
+feature_vs_noise <- bind_rows(feature_vs_noise_A, feature_vs_noise_B)
+
+# final tibble and ggpairs check
+GGally::ggpairs(feature_vs_noise, columns = c(1:5),
+                ggplot2::aes(colour = group, alpha=0.5))
+
+```
+## Calculate Scagnostics
+```{r}
+# calculate scagnostics
+scags_feature_vs_noise_A <- calc_scags_wide(feature_vs_noise_A[,1:5]) %>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
+
+scags_feature_vs_noise_B <- calc_scags_wide(feature_vs_noise_B[,1:5])%>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="B_value")
+
+# Combine Data
+scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
+  left_join(scags_feature_vs_noise_B) %>%
+  mutate(dif_value = abs(A_value - B_value))
+
+```
+## Try Projection Persuit
+Top differences were in convex, skinny, monotonic, and outlying
+```{r, Convex}
+# make index function
+convex_group <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- sc_convex(x = group1[,1], y = group1[,2])
+    val2 <- sc_convex(x = group2[,1], y = group2[,2])
+    
+    #final value
+    abs(val1-val2)
+  }
+}
+
+# try searches
+#try geo search 10 times for convex
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  convex_geodesic <- animate_xy(feature_vs_noise[1:5],
+                                tour_path = guided_tour(convex_group(feature_vs_noise$group)),
+                                #max.tries=10,
+                                delta=0.05,
+                                col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(convex_geodesic, paste("features_data/tours/tour_convex_geodesic_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- convex_geodesic %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("Convex: Feature vs Noise, seed", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/trace_convex_geodesic_", i, ".png", sep=""), p)
+}
+
+
+#try better search, 10 times
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  convex_better <- animate_xy(feature_vs_noise[1:5],
+                              tour_path = guided_tour(convex_group(feature_vs_noise$group)),
+                              search_f = search_better,
+                              #max.tries=10,
+                              delta=0.05,
+                              col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(convex_better, paste("features_data/tours/tour_convex_better_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- convex_better %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("Feature vs Noise: Convex/Better/Seed_", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/fvsn_convex_better_", i, ".png", sep=""), p)
+}
+```
+
+```{r, Skinny}
+
+```
+
+```{r, Outlying}
+
+```
+
+
+# Feature Vs Feature
+## Simulate Data
+```{r}
+# set seed
+set.seed(2021)
+
+# get L-shape data
+lshape <- features %>% 
+  filter(feature=="l-shape")
+
+nonlinear <- features %>% 
+  filter(feature=="nonlinear2")
+
+# make tibble group a
+feature_vs_feature_A <- tibble(x1 = 2.5* cassowaryr:::unitize(lshape$x),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = 2.5* cassowaryr:::unitize(lshape$y),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("A",100)
+                           )
+
+# Make tibble group b
+feature_vs_feature_B <- tibble(x1 = 2.5* cassowaryr:::unitize(nonlinear$x),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = 2.5* cassowaryr:::unitize(nonlinear$y),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("B",100)
+                           )
+
+
+# combine tibbles
+feature_vs_feature <- bind_rows(feature_vs_feature_A, feature_vs_feature_B)
+
+# final tibble and ggpairs check
+GGally::ggpairs(feature_vs_feature, columns = c(1:5),
+                ggplot2::aes(colour = group, alpha=0.5))
+
+```
+
+## Calculate Scagnostics
+```{r}
+# calculate scagnostics
+scags_feature_vs_feature_A <- calc_scags_wide(feature_vs_feature_A[,1:5]) %>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
+
+scags_feature_vs_feature_B <- calc_scags_wide(feature_vs_feature_B[,1:5])%>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="B_value")
+
+# Combine Data
+scags_feature_vs_feature_dif <- scags_feature_vs_feature_A %>%
+  left_join(scags_feature_vs_feature_B) %>%
+  mutate(dif_value = abs(A_value - B_value))
+```
+## Try Projection Persuit
+Top differences were in splines, monotonic, and outlying
+```{r, Splines}
+```
+
+```{r, monotonic}
+```
+
+```{r, outlying}
+```
+
+
+# Multiple Features Vs Noise
+## Simulate Data
+```{r}
+# set seed
+set.seed(2022)
+
+# get L-shape data
+lshape <- features %>% 
+  filter(feature=="l-shape")
+
+nonlinear <- features %>% 
+  filter(feature=="nonlinear2")
+
+# make tibble group a
+mfeatures_vs_noise_A <- tibble(x1 = 2.5* cassowaryr:::unitize(lshape$x),
+                           x2 = 2.5* cassowaryr:::unitize(nonlinear$x),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = 2.5* cassowaryr:::unitize(lshape$y),
+                           x5 = 2.5* cassowaryr:::unitize(nonlinear$y),
+                           group = rep("A",100)
+                           )
+
+# Make tibble group b
+mfeatures_vs_noise_B <- tibble(x1 = rnorm(100, 0.5, 1),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = rnorm(100, 0.5, 1),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("B",100)
+                           )
+
+
+# combine tibbles
+mfeatures_vs_noise <- bind_rows(mfeatures_vs_noise_A, mfeatures_vs_noise_B)
+
+# final tibble and ggpairs check
+GGally::ggpairs(mfeatures_vs_noise, columns = c(1:5),
+                ggplot2::aes(colour = group, alpha=0.5))
+
+```
+## Calculate Scagnostics
+```{r}
+# calculate scagnostics
+scags_mfeatures_vs_noise_A <- calc_scags_wide(mfeatures_vs_noise_A[,1:5]) %>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
+
+scags_mfeatures_vs_noise_B <- calc_scags_wide(mfeatures_vs_noise_B[,1:5])%>%
+  pivot_longer(cols=3:13, names_to = "scag", values_to="B_value")
+
+# Combine Data
+scags_mfeatures_vs_noise_dif <- scags_mfeatures_vs_noise_A %>%
+  left_join(scags_mfeatures_vs_noise_B) %>%
+  mutate(dif_value = abs(A_value - B_value))
+```
+
+## Try Projection Persuit
+Top differences were:
+1) x1 vs x2: splines and dcor
+2) x1 vs x4: convex
+```{r, splines}
+```
+
+```{r, dcor}
+```
+
+```{r, convex}
+```
