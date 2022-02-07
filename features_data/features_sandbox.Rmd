@@ -73,6 +73,92 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 ```
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
+```{r, Functions}
+convex_group <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- sc_convex(x = group1[,1], y = group1[,2])
+    val2 <- sc_convex(x = group2[,1], y = group2[,2])
+    
+    #final value
+    abs(val1-val2)
+  }
+}
+
+skinny_group <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- sc_skinny(x = group1[,1], y = group1[,2])
+    val2 <- sc_skinny(x = group2[,1], y = group2[,2])
+    
+    #final value
+    abs(val1-val2)
+  }
+}
+# numeric_data = feature_vs_noise[1:5]
+# group_vector = feature_vs_noise$group
+# filename = paste("features_data/tours/tour_convex_geodesic_seed", i, ".rds", sep="")
+save_tourr <- function(numeric_data, group_vector, scag, search){
+  indx <- list(
+    "convex" = convex_group(group_vector),
+    "skinny" = skinny_group(group_vector)
+  )
+  srch <- list(
+    "geo" = search_geodesic,
+    "bet" = search_better,
+    "bet_rand" = search_better_random
+  )
+  save_history(numeric_data,
+               tour_path = guided_tour(unlist(unname(indx[scag])), d=2,
+                                     search_f =  srch[search]))
+}
+
+save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "geo")
+
+# test example
+list_sum <- function(func, numbers){
+  fncs <- list(
+    "smm" = sum(numbers),
+    "sqr" = numbers^2
+  )
+  unlist(unname(fncs[func]))
+}
+
+list_sum("smm", c(1,2,3,4,5))
+list_sum("sqr", c(1,2,3,4,5))
+
+```
+
+```{r, single example}
+set.seed(2)
+
+
+m <- save_tourr(feature_vs_noise[1:5],
+             tour_path = guided_tour(convex_group(feature_vs_noise$group),
+                                     d=2,
+                                     search_f =  search_better_random)
+)
+
+convex_better <- animate_xy(feature_vs_noise[1:5],
+                            tour_path = planned_tour(m),
+                            col = feature_vs_noise$group)
+
+convex_better %>%
+  explore_trace_interp() + 
+  scale_color_continuous_botanical() + 
+  ggtitle(paste("Feature vs Noise: Convex/Better/Seed_"))
+```
+
 ```{r, Convex}
 # make index function
 convex_group <- function(cl){
@@ -91,15 +177,17 @@ convex_group <- function(cl){
   }
 }
 
+#
+
 # try searches
-#try geo search 10 times for convex
+#try geo search 5 times for convex
 for (i in seq(5)){
   set.seed(i)
   #tour
   convex_geodesic <- animate_xy(feature_vs_noise[1:5],
                                 tour_path = guided_tour(convex_group(feature_vs_noise$group)),
                                 #max.tries=10,
-                                delta=0.05,
+                                delta=1,
                                 col = feature_vs_noise$group)
   #save tour path
   saveRDS(convex_geodesic, paste("features_data/tours/tour_convex_geodesic_", i, ".rds",
@@ -114,15 +202,15 @@ for (i in seq(5)){
 }
 
 
-#try better search, 10 times
+#try better search, 5 times
 for (i in seq(5)){
   set.seed(i)
   #tour
   convex_better <- animate_xy(feature_vs_noise[1:5],
-                              tour_path = guided_tour(convex_group(feature_vs_noise$group)),
-                              search_f = search_better,
-                              #max.tries=10,
-                              delta=0.05,
+                              tour_path = guided_tour(convex_group(feature_vs_noise$group),
+                                                      d=2,
+                                                      alpha=2,
+                                                      search_f = search_better),
                               col = feature_vs_noise$group)
   #save tour path
   saveRDS(convex_better, paste("features_data/tours/tour_convex_better_", i, ".rds",
@@ -135,25 +223,115 @@ for (i in seq(5)){
   # save trace plot
   ggsave(paste("features_data/trace_plots/fvsn_convex_better_", i, ".png", sep=""), p)
 }
-```
 
-```{r}
-#delete later, messing around with the settings
-set.seed(2)
-convex_geodesic <- animate_xy(feature_vs_noise[1:5],
-                                tour_path = guided_tour(convex_group(feature_vs_noise$group)),
-                                #max.tries=10,
-                                delta=1, #0.5 to 1 have found it. (1.5 and 0.01 didnt)
-                                col = feature_vs_noise$group)
-
-convex_geodesic %>%
+#try better_random search, 5 times
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  convex_better_random <- animate_xy(feature_vs_noise[1:5],
+                              tour_path = guided_tour(convex_group(feature_vs_noise$group),
+                                                      d=2,
+                                                      alpha=0.3,
+                                                      search_f = search_better_random),
+                              col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(convex_better_random, paste("features_data/tours/tour_convex_better_random_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- convex_better_random %>%
     explore_trace_interp() + 
     scale_color_continuous_botanical() + 
-    ggtitle(paste("Convex: Feature vs Noise, seed", i))
+    ggtitle(paste("Feature vs Noise: Convex/better_random/Seed_", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/fvsn_convex_better_random_", i, ".png", sep=""), p)
+}
 ```
 
-```{r, Skinny}
 
+```{r, Skinny}
+# make index function
+skinny_group <- function(cl){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+  
+    #scag value
+    val1 <- sc_skinny(x = group1[,1], y = group1[,2])
+    val2 <- sc_skinny(x = group2[,1], y = group2[,2])
+    
+    #final value
+    abs(val1-val2)
+  }
+}
+
+# try searches
+#try geo search 10 times for skinny
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  skinny_geodesic <- animate_xy(feature_vs_noise[1:5],
+                                tour_path = guided_tour(skinny_group(feature_vs_noise$group)),
+                                #max.tries=10,
+                                delta=1,
+                                col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(skinny_geodesic, paste("features_data/tours/tour_skinny_geodesic_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- skinny_geodesic %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("skinny: Feature vs Noise, seed", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/trace_skinny_geodesic_", i, ".png", sep=""), p)
+}
+
+
+#try better search, 10 times
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  skinny_better <- animate_xy(feature_vs_noise[1:5],
+                              tour_path = guided_tour(skinny_group(feature_vs_noise$group)),
+                              search_f = search_better,
+                              #max.tries=10,
+                              delta=1,
+                              col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(skinny_better, paste("features_data/tours/tour_skinny_better_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- skinny_better %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("Feature vs Noise: skinny/Better/Seed_", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/fvsn_skinny_better_", i, ".png", sep=""), p)
+}
+
+#try better_random search, 10 times
+for (i in seq(5)){
+  set.seed(i)
+  #tour
+  skinny_better_random <- animate_xy(feature_vs_noise[1:5],
+                              tour_path = guided_tour(skinny_group(feature_vs_noise$group)),
+                              search_f = search_better_random,
+                              #max.tries=10,
+                              delta=1,
+                              col = feature_vs_noise$group)
+  #save tour path
+  saveRDS(skinny_better_random, paste("features_data/tours/tour_skinny_better_random_", i, ".rds",
+                                 sep=""))
+  # trace plot
+  p <- skinny_better_random %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("Feature vs Noise: skinny/better_random/Seed_", i))
+  # save trace plot
+  ggsave(paste("features_data/trace_plots/fvsn_skinny_better_random_", i, ".png", sep=""), p)
+}
 ```
 
 ```{r, Outlying}
