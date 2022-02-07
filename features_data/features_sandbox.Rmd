@@ -105,10 +105,9 @@ skinny_group <- function(cl){
     abs(val1-val2)
   }
 }
-# numeric_data = feature_vs_noise[1:5]
-# group_vector = feature_vs_noise$group
-# filename = paste("features_data/tours/tour_convex_geodesic_seed", i, ".rds", sep="")
-save_tourr <- function(numeric_data, group_vector, scag, search){
+
+# Save Tour Function
+save_tourr <- function(numeric_data, group_vector, scag, search, filename){
   indx <- list(
     "convex" = convex_group(group_vector),
     "skinny" = skinny_group(group_vector)
@@ -118,24 +117,14 @@ save_tourr <- function(numeric_data, group_vector, scag, search){
     "bet" = search_better,
     "bet_rand" = search_better_random
   )
-  save_history(numeric_data,
-               tour_path = guided_tour(unlist(unname(indx[scag])), d=2,
-                                     search_f =  srch[search]))
+  h <- save_history(numeric_data,
+                    tour_path = guided_tour(indx[[scag]], d=2, 
+                                            search_f =  srch[[search]]))
+  saveRDS(h, file=filename)
 }
 
-save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "geo")
-
-# test example
-list_sum <- function(func, numbers){
-  fncs <- list(
-    "smm" = sum(numbers),
-    "sqr" = numbers^2
-  )
-  unlist(unname(fncs[func]))
-}
-
-list_sum("smm", c(1,2,3,4,5))
-list_sum("sqr", c(1,2,3,4,5))
+# example
+#save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds")
 
 ```
 
