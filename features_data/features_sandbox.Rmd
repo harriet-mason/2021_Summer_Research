@@ -16,6 +16,7 @@ library(tidyverse)
 library(cassowaryr)
 library(tourr)
 library(ferrn)
+library(stringr)
 ```
 
 
@@ -74,7 +75,7 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
 
-```{r}
+```{r, old functions remove when new ones are working}
 skinny_group <- function(cl){
   classes <- unique(cl)
   function(mat){
@@ -108,6 +109,22 @@ save_tourr <- function(numeric_data, group_vector, scag, search, filename){
   saveRDS(h, file=filename)
 }
 
+save_tourr <- function(numeric_data, group_vector, scag, search, seed, delta_alpha, filename, ...){
+  # old function tested
+  srch <- list(
+    "geo" = search_geodesic,
+    "bet" = search_better,
+    "bet_rand" = search_better_random
+  )
+  set.seed(seed)
+  h <- save_history(numeric_data,
+                    tour_path = guided_tour(scags_groups(group_vector, scag), 
+                                            d=2, 
+                                            search_f =  srch[[search]],
+                                            ...))
+  saveRDS(h, file=filename)
+}
+  
 ```
 
 ```{r, Functions}
@@ -130,38 +147,78 @@ scags_groups <- function(cl, scag){
 }
 
 # Save Tour Function 
-save_tourr <- function(numeric_data, group_vector, scag, search, filename, ...){
+save_tourr <- function(numeric_data, group_vector, scag, search, seed, delta_alpha, filename, ...){
   srch <- list(
-    "geo" = search_geodesic,
-    "bet" = search_better,
-    "bet_rand" = search_better_random
+    "geo" = save_history(numeric_data, tour_path = guided_tour(scags_groups(group_vector, scag), d=2, 
+                                                               search_f =  search_geodesic,
+                                                               delta = delta_alpha,
+                                                               ...)),
+    "bet" = save_history(numeric_data, tour_path = guided_tour(scags_groups(group_vector, scag), d=2, 
+                                                               search_f =  search_better,
+                                                               alpha = delta_alpha,
+                                                               ...)),
+    "bet_rand" = save_history(numeric_data, tour_path = guided_tour(scags_groups(group_vector, scag), d=2, 
+                                                               search_f =  search_better_random,
+                                                               alpha = delta_alpha,
+                                                               ...))
   )
-  h <- save_history(numeric_data,
-                    tour_path = guided_tour(scags_groups(group_vector, scag), 
-                                            d=2, 
-                                            search_f =  srch[[search]],
-                                            ...)) #... is for optimisation
+  set.seed(seed)
+  h <- srch[[search]]
   saveRDS(h, file=filename)
 }
 
   #example
-save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds")
+save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds", delta_alpha=0.1)
 
+# Tour grid Function
+grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, delta_alpha, ...){
+  expand.grid(scags, searches, seeds, delta_alpha, stringsAsFactors=FALSE) %>%
+    mutate(filename = paste("features_data/tours/tour", Var1, Var2, Var4, Var3, ".rds", sep="_")) %>%
+    group_by(Var1, Var2, Var4, Var3) %>%
+    summarise(save_tourr(numeric_data, group_vector, scag = Var1,  search = Var2, seed = Var3, 
+                         delta_alpha = Var4, filename = filename))
+}
+#example
+grid_tourr(numeric_data = feature_vs_noise[1:5], 
+           group_vector = feature_vs_noise$group,
+           scags = c("convex"), #scags = c("convex", "skinny"), 
+           searches = c("geo", "bet"), #searches = c("geo", "bet", "bet_rand"), 
+           seeds = seq(1), #seeds = seq(5), 
+           delta_alpha = c(0.1, 0.7)) #delta_alpha = c(0.05, 0.1, 0.5, 0.7, 1)) 
+
+```
+
+````{r, Save and Trace which dont quite work}
 # Animate Tour Function
 anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
   a <- animate_xy(numeric_data,
                   tour_path = planned_tour(saved_tour),
                   col = group_vector)
-  saveRDS(a, filename)
+  #saveRDS(a, filename)
 }
 
 #example
-goodvibes <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/goodvibes.rds")
-anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, goodvibes, "badvibes.rds")
+filename <- readRDS("features_data/tours/tour_skinny_bet_2_.rds")
+anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, filename)
 
-c <- animate_xy(feature_vs_noise[1:5],
+```
+
+```{r}
+t1 <- save_history(flea[, 1:6], max = 3)
+a <- animate_xy(flea[, 1:6], planned_tour(t1))
+
+b <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex")),
+                col = feature_vs_noise$group)
+
+c <- animate(feature_vs_noise[1:5],
                 tour_path = planned_tour(goodvibes),
                 col = feature_vs_noise$group)
+
+d <- animate_xy(feature_vs_noise[1:5], max = 30,
+             col = feature_vs_noise$group)
+
+
 saveRDS(c, "badvibes.rds")
 
 # Tour Trace Plot Function
@@ -177,11 +234,7 @@ trace_plot <- function(saved_anim, plot_name, filename){
 badvibes <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/badvibes.rds")
 trace_plot(c, "Vibes Plot Check", "neutralvibes.jpg")
 
-# Tour grid Function
-grid_tourr <- function(){
-  set.seed(i)
-  
-}
+
 ```
 
 ```{r, Convex}
