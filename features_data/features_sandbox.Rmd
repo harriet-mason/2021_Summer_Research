@@ -73,23 +73,8 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 ```
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
-```{r, Functions}
-convex_group <- function(cl){
-  classes <- unique(cl)
-  function(mat){
-    #each matrix group
-    group1 <- mat[which(cl==classes[1]),]
-    group2 <- mat[which(cl==classes[2]),]
-  
-    #scag value
-    val1 <- sc_convex(x = group1[,1], y = group1[,2])
-    val2 <- sc_convex(x = group2[,1], y = group2[,2])
-    
-    #final value
-    abs(val1-val2)
-  }
-}
 
+```{r}
 skinny_group <- function(cl){
   classes <- unique(cl)
   function(mat){
@@ -123,29 +108,80 @@ save_tourr <- function(numeric_data, group_vector, scag, search, filename){
   saveRDS(h, file=filename)
 }
 
-# example
-#save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds")
-
 ```
 
-```{r, single example}
-set.seed(2)
+```{r, Functions}
+# Scag Projection Persuit index
+scags_groups <- function(cl, scag){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+    
+    indx <- list( #copy and pasting should be cleaned up
+      "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
+      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2]))
+      )
+    
+    #final value
+    abs(indx[[scag]])
+  }
+}
 
+# Save Tour Function 
+save_tourr <- function(numeric_data, group_vector, scag, search, filename, ...){
+  srch <- list(
+    "geo" = search_geodesic,
+    "bet" = search_better,
+    "bet_rand" = search_better_random
+  )
+  h <- save_history(numeric_data,
+                    tour_path = guided_tour(scags_groups(group_vector, scag), 
+                                            d=2, 
+                                            search_f =  srch[[search]],
+                                            ...)) #... is for optimisation
+  saveRDS(h, file=filename)
+}
 
-m <- save_tourr(feature_vs_noise[1:5],
-             tour_path = guided_tour(convex_group(feature_vs_noise$group),
-                                     d=2,
-                                     search_f =  search_better_random)
-)
+  #example
+save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds")
 
-convex_better <- animate_xy(feature_vs_noise[1:5],
-                            tour_path = planned_tour(m),
-                            col = feature_vs_noise$group)
+# Animate Tour Function
+anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
+  a <- animate_xy(numeric_data,
+                  tour_path = planned_tour(saved_tour),
+                  col = group_vector)
+  saveRDS(a, filename)
+}
 
-convex_better %>%
-  explore_trace_interp() + 
-  scale_color_continuous_botanical() + 
-  ggtitle(paste("Feature vs Noise: Convex/Better/Seed_"))
+#example
+goodvibes <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/goodvibes.rds")
+anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, goodvibes, "badvibes.rds")
+
+c <- animate_xy(feature_vs_noise[1:5],
+                tour_path = planned_tour(goodvibes),
+                col = feature_vs_noise$group)
+saveRDS(c, "badvibes.rds")
+
+# Tour Trace Plot Function
+trace_plot <- function(saved_anim, plot_name, filename){
+  p <- saved_anim %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("plotname"))
+  ggsave(filename, p)
+}
+
+#example
+badvibes <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/badvibes.rds")
+trace_plot(c, "Vibes Plot Check", "neutralvibes.jpg")
+
+# Tour grid Function
+grid_tourr <- function(){
+  set.seed(i)
+  
+}
 ```
 
 ```{r, Convex}
