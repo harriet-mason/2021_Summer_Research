@@ -127,7 +127,7 @@ save_tourr <- function(numeric_data, group_vector, scag, search, seed, delta_alp
   
 ```
 
-```{r, Functions}
+```{r, Functions and Grid Search}
 # Scag Projection Persuit index
 scags_groups <- function(cl, scag){
   classes <- unique(cl)
@@ -138,6 +138,8 @@ scags_groups <- function(cl, scag){
     
     indx <- list( #copy and pasting should be cleaned up
       "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
+      "monotonic" = (sc_monotonic(x = group1[,1], y = group1[,2]) - sc_monotonic(x = group2[,1], y = group2[,2])),
+      "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
       "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2]))
       )
     
@@ -168,7 +170,7 @@ save_tourr <- function(numeric_data, group_vector, scag, search, seed, delta_alp
 }
 
   #example
-save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "geo", "goodvibes.rds", delta_alpha=0.1)
+save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "monotonic", "geo", "goodvibes.rds", delta_alpha=0.1)
 
 # Tour grid Function
 grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, delta_alpha, ...){
@@ -181,10 +183,11 @@ grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, delta
 #example
 grid_tourr(numeric_data = feature_vs_noise[1:5], 
            group_vector = feature_vs_noise$group,
-           scags = c("convex"), #scags = c("convex", "skinny"), 
-           searches = c("geo", "bet"), #searches = c("geo", "bet", "bet_rand"), 
-           seeds = seq(1), #seeds = seq(5), 
-           delta_alpha = c(0.1, 0.7)) #delta_alpha = c(0.05, 0.1, 0.5, 0.7, 1)) 
+           scags = c("convex", "skinny"), 
+           #scags = c("convex", "skinny", "outlying", "monotonic"), 
+           searches = c("geo", "bet", "bet_rand"), 
+           seeds = seq(5), 
+           delta_alpha = c(0.05, 0.1, 0.5, 0.7, 1)) 
 
 ```
 
@@ -198,7 +201,7 @@ anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
 }
 
 #example
-filename <- readRDS("features_data/tours/tour_skinny_bet_2_.rds")
+filename <- readRDS("features_data/tours/tour_convex_geo_0.1_1_.rds")
 anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, filename)
 
 ```
