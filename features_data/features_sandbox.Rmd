@@ -149,9 +149,12 @@ anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
 }
 
 #example
-filename <- readRDS("features_data/tours/tour_convex_geo_0.1_1_.rds")
+filename <- readRDS("features_data/tours/tour_skinny_bet_rand_1_5_.rds")
 anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, filename)
 
+```
+
+```{r}
 # tour won't save stuff
 t1 <- save_history(flea[, 1:6], max = 3)
 a <- animate_xy(flea[, 1:6], planned_tour(t1))
