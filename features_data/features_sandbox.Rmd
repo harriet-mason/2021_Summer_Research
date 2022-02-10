@@ -296,7 +296,7 @@ anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
 }
 
 #example
-filename <- readRDS("features_data/tours2/tour_splines_bet_0.7_2_.rds")
+filename <- readRDS("features_data/tours2/tour_splines_bet_0.1_1_.rds")
 anim_tourr(feature_vs_feature[1:5], feature_vs_feature$group, filename)
 
 ```
@@ -315,7 +315,7 @@ b <- animate_xy(feature_vs_noise[1:5],
                 col = feature_vs_noise$group)
 
 c <- animate(feature_vs_noise[1:5],
-                tour_path = planned_tour(goodvibes),
+                tour_path = planned_tour(filename),
                 col = feature_vs_noise$group)
 
 d <- animate_xy(feature_vs_noise[1:5], max = 30,
