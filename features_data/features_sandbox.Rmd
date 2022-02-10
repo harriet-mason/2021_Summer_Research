@@ -74,9 +74,6 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 ```
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
-```{r, Working Version From Playing Around}
-
-```
 
 ```{r, Functions and Grid Search}
 # Scag Projection Persuit index
@@ -165,7 +162,7 @@ anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
 }
 
 #example
-filename <- readRDS("features_data/tours/tour_convex_bet_0.5_1_.rds")
+filename <- readRDS("features_data/tours/tour_convex_bet_rand_0.75_2_.rds")
 anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, filename)
 
 ```
