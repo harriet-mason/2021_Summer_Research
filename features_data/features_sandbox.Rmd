@@ -76,7 +76,8 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
-```{r, PP Functions}
+
+```{r, Projection Persuit Functions}
 # Scag Projection Persuit index
 scags_groups <- function(cl, scag){
   classes <- unique(cl)
@@ -99,60 +100,167 @@ scags_groups <- function(cl, scag){
 }
 
 # Save Tour Function 
-save_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, filename, ...){
+save_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, max.tries, filename, ...){
+  #set seed
+  set.seed(seed)
+  
   srch <- list(
     "bet" = save_history(numeric_data, tour_path = guided_tour(scags_groups(group_vector, scag), 
                                                                d=2, 
                                                                search_f =  search_better,
                                                                alpha = alpha,
+                                                               max.tries = max.tries,
                                                                ...)),
     "bet_rand" = save_history(numeric_data, tour_path = guided_tour(scags_groups(group_vector, scag),
                                                                     d=2,
                                                                     search_f =  search_better_random,
                                                                     alpha = alpha,
-                                                               ...))
+                                                                    max.tries = max.tries,
+                                                                    ...))
   )
-  set.seed(seed)
   h <- srch[[search]]
   saveRDS(h, file=filename)
 }
 
 # Tour grid Function
-grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, alpha, ...){
-  expand.grid(scags, searches, seeds, alpha, stringsAsFactors=FALSE) %>%
-    mutate(filename = paste("features_data/tours/tour", Var1, Var2, Var4, Var3, ".rds", sep="_")) %>%
-    group_by(Var1, Var2, Var4, Var3) %>%
+grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, alpha, max.tries, filestart, ...){
+  #make expanded tibble so that we can search a grid of values
+  expand.grid(scags, searches, seeds, alpha, max.tries, stringsAsFactors=FALSE) %>%
+    # add file names for saving
+    mutate(filename = paste(filestart, Var1, Var2, Var4, Var5, Var3, ".rds", sep="_")) %>%
+    # group by and summarise to run save on every value
+    group_by(Var1, Var2, Var4, Var5, Var3) %>%
     summarise(save_tourr(numeric_data, group_vector, scag = Var1,  search = Var2, seed = Var3, 
-                         alpha = Var4, filename = filename))
+                         alpha = Var4, max.tries=Var5, filename = filename))
 }
+
+
+# Animate Tour Function
+anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, filestart){
+  #set seed
+  set.seed(seed)
+  
+  # perform search by calling function from list
+  srch <- list(
+    "bet" =  animate_xy(numeric_data,
+                  tour_path = guided_tour(scags_groups(group_vector, scag),
+                                          search_f = search_better),
+                  col = group_vector),
+    "bet_rand" = animate_xy(numeric_data,
+                  tour_path = guided_tour(scags_groups(group_vector, scag),
+                                          search_f = search_better_random),
+                  col = group_vector)
+    )
+  
+  #save object and file name
+  a <- srch[[search]]
+  filename <- paste(filestart, scag, search, alpha, seed, ".rds", sep="_")
+  
+  # save r object
+  saveRDS(a, filename)
+}
+
+# Trace Plot Function
+trace_plot <- function(saved_anim, plot_name, filename){
+  p <- saved_anim %>%
+    explore_trace_interp() + 
+    scale_color_continuous_botanical() + 
+    ggtitle(paste("plotname"))
+  ggsave(filename, p)
+}
+
+# Polish function
+
+```
+
+````{r, Function Tests}
+#save_tourr test
+save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=1, alpha=1, max.tries = 25,
+           filename = "features_data/tours/tour_convex_bet_1_25_1_.rds")
+
+# grid search test
+grid_tourr(numeric_data = feature_vs_noise[1:5], 
+           group_vector = feature_vs_noise$group,
+           scags = c("convex"), 
+           searches = c("bet"), 
+           seeds = 1, 
+           alpha = 0.4,
+           max.tries = 100,
+           filestart = "features_data/tours/tour")
+
+
+# anim_tourr test
+anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=1, 
+           alpha=0.5, filestart = 'features_data/anims/anim')
+
+# Test Polish
+
+
+# Trace plot test
+
 ```
 
 ```{r, Grid Values, FvN}
+filestart <- "features_data/tours/tour"
 # First Set of Overnight Values (Convex & Skinny)
 grid_tourr(numeric_data = feature_vs_noise[1:5], 
            group_vector = feature_vs_noise$group,
            scags = c("convex", "skinny"), 
            searches = c("bet", "bet_rand"), 
            seeds = seq(5), 
-           alpha = c(0.05, 0.1, 0.5, 0.7, 1)) 
-
+           alpha = c(0.05, 0.1, 0.5, 0.7, 1),
+           max.tries = 25,
+           filestart = filestart) 
 # Second Set of Overnight Values (Monotonic and Outlying)
 grid_tourr(numeric_data = feature_vs_noise[1:5], 
            group_vector = feature_vs_noise$group,
            scags = c("outlying", "monotonic"), 
            searches = c("bet", "bet_rand"), 
            seeds = seq(5), 
-           alpha = c(0.1, 0.5, 0.7, 1)) 
+           alpha = c(0.1, 0.5, 0.7, 1),
+           max.tries = 25,
+           filestart = filestart) 
 # (Convex and Skinny)
 grid_tourr(numeric_data = feature_vs_noise[1:5], 
            group_vector = feature_vs_noise$group,
            scags = c("convex", "skinny"), 
            searches = c("bet", "bet_rand"), 
            seeds = seq(5), 
-           alpha = c(0.45, 0.55, 0.6, 0.65, 0.75))
+           alpha = c(0.45, 0.55, 0.6, 0.65, 0.75),
+           max.tries = 25,
+           filestart = filestart)
+
+# Adjust Max Size Grid Search 
+grid_tourr(numeric_data = feature_vs_noise[1:5], 
+           group_vector = feature_vs_noise$group,
+           scags = c("convex", "skinny"), #convex and skinny were the best of the scagnsotics
+           searches = "bet",  #better was the better search lol
+           seeds = seq(10), #increase number of seeds to increase certainty
+           alpha = c(0.1, 0.3, 0.5, 0,7), #can have a lower alpha with higher max.tries
+           max.tries = c(50, 100, 200, 300, 500), #test max tries
+           filestart = "features_data/tours1/tour") #new folder so not with others
 
 ```
 
+```{r, Working Examples for animate_xy}
+# GEODESIC WORK
+set.seed(2)
+m <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex")),
+                delta=0.05,
+                col = feature_vs_noise$group)
+ # BETTER WORK
+set.seed(7)
+m <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                        search_f = search_better,
+                                        alpha=0.75),
+                col = feature_vs_noise$group)
+
+# Anim_tour version of better work that does not produce the same results
+anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=7, 
+           alpha=0.75, filestart = 'features_data/anims/anim')
+```
 
 # Feature Vs Feature
 ## Simulate Data
@@ -285,57 +393,13 @@ Top differences were:
 1) x1 vs x2: splines and dcor
 2) x1 vs x4: convex
 
-# Animate the Tours
-````{r, Save and Trace which dont quite work}
-# Animate Tour Function
-anim_tourr <- function(numeric_data, group_vector, saved_tour, filename){
-  a <- animate_xy(numeric_data,
-                  tour_path = planned_tour(saved_tour),
-                  col = group_vector)
-  #saveRDS(a, filename)
-}
-
-#example
-filename <- readRDS("features_data/tours2/tour_splines_bet_0.1_1_.rds")
-anim_tourr(feature_vs_feature[1:5], feature_vs_feature$group, filename)
-
-```
+# Watching the Tours
 
 ```{r}
-# Save tour test
-save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "monotonic", "geo", seed=1, alpha=0.01, "test1.rds")
-
-
-# tour won't save stuff
-t1 <- save_history(flea[, 1:6], max = 3)
-a <- animate_xy(flea[, 1:6], planned_tour(t1))
-
-b <- animate_xy(feature_vs_noise[1:5],
-                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex")),
-                col = feature_vs_noise$group)
-
-c <- animate(feature_vs_noise[1:5],
-                tour_path = planned_tour(filename),
-                col = feature_vs_noise$group)
-
-d <- animate_xy(feature_vs_noise[1:5], max = 30,
-             col = feature_vs_noise$group)
-
-
-saveRDS(c, "badvibes.rds")
-
-# Tour Trace Plot Function
-trace_plot <- function(saved_anim, plot_name, filename){
-  p <- saved_anim %>%
-    explore_trace_interp() + 
-    scale_color_continuous_botanical() + 
-    ggtitle(paste("plotname"))
-  ggsave(filename, p)
-}
-
-#example
-badvibes <- readRDS("C:/Users/harri/OneDrive/2021_Summer_Research/badvibes.rds")
-trace_plot(c, "Vibes Plot Check", "neutralvibes.jpg")
-
+# watch tour
+saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.5_100_1_.rds")
+animate_xy(feature_vs_noise[1:5], 
+        tour_path = planned_tour(saved_tour),
+        col = feature_vs_noise$group)
 
 ```
