@@ -403,3 +403,41 @@ animate_xy(feature_vs_noise[1:5],
         col = feature_vs_noise$group)
 
 ```
+
+# Polish Function Test
+```{r}
+saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.5_100_1_.rds")
+attr(saved_tour, "class") <- NULL
+best_proj <- saved_tour[, , dim(saved_tour)[3]]
+
+# RUN POLISH
+animate_xy(
+  feature_vs_noise[1:5],
+  guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+    search_f = search_polish,
+    cur_index = 0
+  ),
+  start = best_proj,
+  col = feature_vs_noise$group
+)
+
+# TRY WITH SAVE TOUR
+set.seed(2)
+saved_tour2 <- save_history(feature_vs_noise[1:5],
+             tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                     search_f = search_polish,
+                                     #polish_max_tries = 100,
+                                     cur_index = 0),
+             start = best_proj)
+
+animate_xy(feature_vs_noise[1:5], 
+        tour_path = planned_tour(saved_tour2),
+        col = feature_vs_noise$group)
+
+save_polish <- function(){
+  
+}
+
+save_polish
+
+```
