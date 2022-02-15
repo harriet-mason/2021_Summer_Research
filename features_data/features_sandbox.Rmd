@@ -397,7 +397,9 @@ Top differences were:
 
 ```{r}
 # watch tour
-saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.5_100_1_.rds")
+# format: tour_scag_search_alpha_maxtries_seed_.rds
+saved_tour <- NULL
+saved_tour <- readRDS("features_data/tours1/tour_skinny_bet_7_500_5_.rds")
 animate_xy(feature_vs_noise[1:5], 
         tour_path = planned_tour(saved_tour),
         col = feature_vs_noise$group)
@@ -406,7 +408,7 @@ animate_xy(feature_vs_noise[1:5],
 
 # Polish Function Test
 ```{r}
-saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.5_100_1_.rds")
+saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.3_300_4_.rds")
 attr(saved_tour, "class") <- NULL
 best_proj <- saved_tour[, , dim(saved_tour)[3]]
 
