@@ -170,8 +170,29 @@ trace_plot <- function(saved_anim, plot_name, filename){
 }
 
 # Polish function
+save_polish <- function(numeric_data, group_vector, scag, seed = 1, 
+                        polish_max_tries = 30, saved_tour_name, filename){
+  
+  # get final projection of saved tour
+  attr(saved_tour, "class") <- NULL
+  best_proj <- saved_tour[, , dim(saved_tour)[3]]
+  
+  # set seed
+  set.seed(seed)
+  
+  # run search
+  h <- save_history(numeric_data, 
+                    tour_path = guided_tour(scags_groups(group_vector, scag),
+                                            search_f = search_polish,
+                                            polish_max_tries = polish_max_tries,
+                                            cur_index = 0),
+                    start = best_proj)
+  saveRDS(h, file=filename)
+  
+}
 
 ```
+
 
 ````{r, Function Tests}
 #save_tourr test
@@ -193,8 +214,27 @@ grid_tourr(numeric_data = feature_vs_noise[1:5],
 anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=1, 
            alpha=0.5, filestart = 'features_data/anims/anim')
 
-# Test Polish
 
+# Test POLISH
+save_polish(numeric_data = feature_vs_noise[1:5], 
+            group_vector = feature_vs_noise$group, 
+            scag = "convex", 
+            #seed = 1, 
+            #polish_max_tries, 
+            saved_tour = readRDS("features_data/tours1/tour_skinny_bet_7_500_5_.rds"), 
+            filename = "features_data/tours1/tour_skinny_bet_7_500_5_(polish).rds")
+  # watch
+saved_tour <- NULL
+saved_tour <- readRDS("features_data/tours1/tour_skinny_bet_7_500_5_.rds")
+animate_xy(feature_vs_noise[1:5], 
+        tour_path = planned_tour(saved_tour),
+        col = feature_vs_noise$group)
+
+saved_tour <- NULL
+saved_tour <- readRDS("features_data/tours1/tour_skinny_bet_7_500_5_(polish).rds")
+animate_xy(feature_vs_noise[1:5], 
+        tour_path = planned_tour(saved_tour),
+        col = feature_vs_noise$group)
 
 # Trace plot test
 
@@ -406,40 +446,4 @@ animate_xy(feature_vs_noise[1:5],
 
 ```
 
-# Polish Function Test
-```{r}
-saved_tour <- readRDS("features_data/tours/tour_convex_bet_0.3_300_4_.rds")
-attr(saved_tour, "class") <- NULL
-best_proj <- saved_tour[, , dim(saved_tour)[3]]
 
-# RUN POLISH
-animate_xy(
-  feature_vs_noise[1:5],
-  guided_tour(scags_groups(feature_vs_noise$group, "convex"),
-    search_f = search_polish,
-    cur_index = 0
-  ),
-  start = best_proj,
-  col = feature_vs_noise$group
-)
-
-# TRY WITH SAVE TOUR
-set.seed(2)
-saved_tour2 <- save_history(feature_vs_noise[1:5],
-             tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
-                                     search_f = search_polish,
-                                     #polish_max_tries = 100,
-                                     cur_index = 0),
-             start = best_proj)
-
-animate_xy(feature_vs_noise[1:5], 
-        tour_path = planned_tour(saved_tour2),
-        col = feature_vs_noise$group)
-
-save_polish <- function(){
-  
-}
-
-save_polish
-
-```
