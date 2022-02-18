@@ -446,4 +446,60 @@ animate_xy(feature_vs_noise[1:5],
 
 ```
 
+# Make trace plot function from Save History
+```{r}
+get_trace <- function(){
+  
+}
+
+tPath <- readRDS("features_data/tours1/tour_skinny_bet_7_500_5_.rds")
+tFullPath <- as.list(tourr::interpolate(tPath))
+
+```
+
+# Get last frame from animation
+```{r}
+#get df
+set.seed(7)
+anim_df <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                        search_f = search_better,
+                                        alpha=0.7,
+                                        max.tries=100),
+                col = feature_vs_noise$group)
+
+#get final projection
+mat_data <- as.matrix(feature_vs_noise[1:5])
+mat_basis <- matrix(unlist(get_best(anim_df)$basis), ncol=2, nrow=5)
+
+plot_data <- as_tibble(mat_data %*% mat_basis) %>%
+  rename(x = V1, y = V2)
+plot_data$group <- feature_vs_noise$group
+
+basis_data <- as_tibble(matrix(unlist(get_best(anim_df)$basis), ncol=2, nrow=5)) %>%
+  rename(xend = V1, yend = V2) %>%
+  mutate(x=0, y=0,
+         xend=5*xend, yend=5*yend)
+basis_data$variable = c("x1", "x2", "x3", "x4", "x5")
+
+ggplot(plot_data, aes(x,y)) + 
+  geom_point(aes(colour=group)) +
+  #geom_segment(x=0, y=0, xend = 5*mat_basis[1,1], yend = 5*mat_basis[1,2]) +
+  #geom_segment(x=0, y=0, xend = 5*mat_basis[2,1], yend = 5*mat_basis[2,2]) +
+  #geom_segment(x=0, y=0, xend = 5*mat_basis[3,1], yend = 5*mat_basis[3,2]) +
+  #geom_segment(x=0, y=0, xend = 5*mat_basis[4,1], yend = 5*mat_basis[4,2]) +
+  #geom_segment(x=0, y=0, xend = 5*mat_basis[5,1], yend = 5*mat_basis[5,2]) +
+  theme_classic() +
+  geom_segment(data=basis_data, aes(x=x, y=y, xend=xend, yend=yend)) +
+  geom_text(data=basis_data, aes(x=xend, y=yend, label=variable)) +
+  theme(axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank())
+    #panel.grid.major.y = element_blank(),
+    #panel.grid.minor.y = element_blank()) 
+
+
+
+```
+
 
