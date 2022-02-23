@@ -136,7 +136,7 @@ grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, alpha
 
 
 # Animate Tour Function
-anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, filestart){
+anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, max.tries, filestart){
   #set seed
   set.seed(seed)
   
@@ -144,17 +144,21 @@ anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, fi
   srch <- list(
     "bet" =  animate_xy(numeric_data,
                   tour_path = guided_tour(scags_groups(group_vector, scag),
-                                          search_f = search_better),
+                                          search_f = search_better,
+                                          alpha = alpha,
+                                          max.tries=max.tries),
                   col = group_vector),
     "bet_rand" = animate_xy(numeric_data,
                   tour_path = guided_tour(scags_groups(group_vector, scag),
-                                          search_f = search_better_random),
+                                          search_f = search_better_random,
+                                          alpha = alpha,
+                                          max.tries=max.tries),
                   col = group_vector)
     )
   
   #save object and file name
   a <- srch[[search]]
-  filename <- paste(filestart, scag, search, alpha, seed, ".rds", sep="_")
+  filename <- paste(filestart, scag, search, alpha, max.tries, seed, ".rds", sep="_")
   
   # save r object
   saveRDS(a, filename)
@@ -190,6 +194,8 @@ save_polish <- function(numeric_data, group_vector, scag, seed = 1,
   saveRDS(h, file=filename)
   
 }
+
+
 
 ```
 
@@ -459,45 +465,42 @@ tFullPath <- as.list(tourr::interpolate(tPath))
 
 # Get last frame from animation
 ```{r}
-#get df
-set.seed(7)
-anim_df <- animate_xy(feature_vs_noise[1:5],
-                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
-                                        search_f = search_better,
-                                        alpha=0.7,
-                                        max.tries=100),
-                col = feature_vs_noise$group)
-
-#get final projection
-mat_data <- as.matrix(feature_vs_noise[1:5])
-mat_basis <- matrix(unlist(get_best(anim_df)$basis), ncol=2, nrow=5)
-
-plot_data <- as_tibble(mat_data %*% mat_basis) %>%
-  rename(x = V1, y = V2)
-plot_data$group <- feature_vs_noise$group
-
-basis_data <- as_tibble(matrix(unlist(get_best(anim_df)$basis), ncol=2, nrow=5)) %>%
-  rename(xend = V1, yend = V2) %>%
-  mutate(x=0, y=0,
-         xend=5*xend, yend=5*yend)
-basis_data$variable = c("x1", "x2", "x3", "x4", "x5")
-
-ggplot(plot_data, aes(x,y)) + 
-  geom_point(aes(colour=group)) +
-  theme_classic() +
-  geom_segment(data=basis_data, aes(x=x, y=y, xend=xend, yend=yend)) +
-  geom_text(data=basis_data, aes(x=xend, y=yend, label=variable)) +
-  theme(axis.line = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text = element_blank())
-
 last_frame <- function(numeric_data, group_data, anim_data){
-  mat_data <- as.matrix(feature_vs_noise[1:5])
-  mat_basis <- matrix(unlist(get_best(anim_df)$basis), ncol=2, nrow=5)
+  # make data into matrix
+  mat_data <- as.matrix(numeric_data)
+  mat_basis <- matrix(unlist(get_best(anim_data)$basis), ncol=2, nrow=5)
+  
+  # transform data to basis
+  plot_data <- as_tibble(mat_data %*% mat_basis) %>%
+    rename(x = V1, y = V2)
+  plot_data$group <- group_data
+  
+  # get basis data for segment plots
+  basis_data <- as_tibble(matrix(unlist(get_best(anim_data)$basis), ncol=2, nrow=5)) %>%
+    rename(xend = V1, yend = V2) %>%
+    mutate(x=0, y=0, xend=5*xend, yend=5*yend)
+  basis_data$variable = c("x1", "x2", "x3", "x4", "x5")
+  
+  #plot ggplot
+  ggplot(plot_data, aes(x,y)) + 
+    geom_point(aes(colour=group)) +
+    theme_classic() +
+    geom_segment(data=basis_data, aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=basis_data, aes(x=xend, y=yend, label=variable)) +
+    theme(axis.line = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank())
+
 }
 
-last_frame(feature_vs_noise[1:5], feature_vs_noise$group, anim_df)
+
+anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "bet", 7, 0.7, 500, "anim")
+saved_tour <- NULL
+saved_anim <- readRDS("anim_skinny_bet_0.7_7_.rds")
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, saved_anim)
 
 ```
+
+
 
 
