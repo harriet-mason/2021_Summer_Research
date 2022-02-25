@@ -16,7 +16,7 @@ library(tidyverse)
 library(cassowaryr)
 library(tourr)
 library(ferrn)
-library(stringr) 
+library(stringr)  
 ```
 
 
