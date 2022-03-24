@@ -19,6 +19,14 @@ library(ferrn)
 library(stringr)  
 ```
 
+# Write Up
+## 1) The Scagnostics Identifying the Difference
+## 2) The Functions (Using the Projection Persuit Index)
+### a) projections persuit
+### b) The functions I ended up using
+## 3) Tuning the Projection Persuit Indexes
+## 4) Trace plots and Results
+## 4) Improvements / Which scagnostics can be used in projection persuit + why
 
 # Feature Vs Noise
 ## Simulate Data
@@ -78,6 +86,9 @@ scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
 Top differences were in convex, skinny, monotonic, and outlying
 
 ```{r, Projection Persuit Functions}
+# Record
+options("tourr.verbose" = TRUE)
+
 # Scag Projection Persuit index
 scags_groups <- function(cl, scag){
   classes <- unique(cl)
@@ -494,10 +505,37 @@ last_frame <- function(numeric_data, group_data, anim_data){
 }
 
 
-anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "bet", 7, 0.7, 500, "anim")
+saved_anim <- anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "bet", 7, 0.7, 500, "anim")
 saved_tour <- NULL
-saved_anim <- readRDS("anim_skinny_bet_0.7_7_.rds")
-last_frame(feature_vs_noise[1:5], feature_vs_noise$group, saved_anim)
+saved_anim <- readRDS("anim_skinny_bet_0.7_500_7_.rds")
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, check)
+
+numeric_data <- feature_vs_noise[1:5]
+group_data <- feature_vs_noise$group
+mat_data <- as.matrix(numeric_data)
+  mat_basis <- matrix(unlist(check$basis), ncol=2, nrow=5) #matrix(unlist(get_best(check)$basis), ncol=2, nrow=5)
+  
+  # transform data to basis
+  plot_data <- as_tibble(mat_data %*% mat_basis) %>%
+    rename(x = V1, y = V2)
+  plot_data$group <- group_data
+  
+  # get basis data for segment plots
+  basis_data <- as_tibble(matrix(unlist(check$basis), ncol=2, nrow=5)) %>%
+    rename(xend = V1, yend = V2) %>%
+    mutate(x=0, y=0, xend=5*xend, yend=5*yend)
+  basis_data$variable = c("x1", "x2", "x3", "x4", "x5")
+  
+  #plot ggplot
+  ggplot(plot_data, aes(x,y)) + 
+    geom_point(aes(colour=group)) +
+    theme_classic() +
+    geom_segment(data=basis_data, aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=basis_data, aes(x=xend, y=yend, label=variable)) +
+    theme(axis.line = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank())
+
 
 ```
 
