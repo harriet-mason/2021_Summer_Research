@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r, loadlibraries}
@@ -19,18 +19,11 @@ library(ferrn)
 library(stringr)  
 ```
 
-# Write Up
-## 1) The Scagnostics Identifying the Difference
-## 2) The Functions (Using the Projection Persuit Index)
-### a) projections persuit
-### b) The functions I ended up using
-## 3) Tuning the Projection Persuit Indexes
-## 4) Trace plots and Results
-## 4) Improvements / Which scagnostics can be used in projection persuit + why
+# The feature vs noise data
 
-# Feature Vs Noise
-## Simulate Data
-```{r}
+We want to identify if scagnostics can be used in projection persuit to find interesting shapes in linear projections of a data set. In order to test this, we created a data set with two groups where one pair of variables has a "shape" in one of the groups, and all other variables are normally distributed. Here the scagnsotics will have to find the L-shape in group A in the x1 and x4 pairwise plot that can be seen in the scatter plot matrix (SPLOM) below. If the scagnsotics can be used in projection persuit, they should be able to identify which group and variable combination shows the abonormal shape.
+
+```{r simdata, fig.cap= "A scatter plot matrix of the simulated 'L-shape vs noise' data. The shape can be seen in the x1 vs x4 pairwise plot in group A."}
 # set seed
 set.seed(2020)
 
@@ -61,13 +54,17 @@ feature_vs_noise_B <- tibble(x1 = rnorm(100, 0.5, 1),
 feature_vs_noise <- bind_rows(feature_vs_noise_A, feature_vs_noise_B)
 
 # final tibble and ggpairs check
-GGally::ggpairs(feature_vs_noise, columns = c(1:5),
-                ggplot2::aes(colour = group, alpha=0.5))
+p1 <- GGally::ggpairs(feature_vs_noise, columns = c(1:5),
+                ggplot2::aes(colour = group, alpha=0.5))+ 
+  theme_minimal()
+  
 
+p1
 ```
 
-## Calculate Scagnostics
-```{r}
+Any scagnsotic that can identify this shape in projection pursuit should also be able to pick the shape from a collection pairwise plots. This is how we are going to select the projection pursuit index. Here we calculate each scagnostic for each possible pairwise plot separately for each group. We then calculate the absolute difference between these scagnostic values for each group. The scagnostics that have their maximum group difference on the x1 and x4 pair can "see" the shape. The measure that has the largest difference is the best scagnostic to use in projection persuit. The table below has the difference between the groups and the associated variable pair for each scagnostic. The scagnostics convex and skinny are the best choise
+
+```{r, eval=FALSE scagcals, fig.cap= "The top pairs of variables. Convex and skinny do the best job of seeing the L-shape in group A. }
 # calculate scagnostics
 scags_feature_vs_noise_A <- calc_scags_wide(feature_vs_noise_A[,1:5]) %>%
   pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
@@ -78,14 +75,36 @@ scags_feature_vs_noise_B <- calc_scags_wide(feature_vs_noise_B[,1:5])%>%
 # Combine Data
 scags_feature_vs_noise_dif <- scags_feature_vs_noise_A %>%
   left_join(scags_feature_vs_noise_B) %>%
-  mutate(dif_value = abs(A_value - B_value))
+  mutate(dif_value = abs(A_value - B_value)) 
 
+scag_df <- scags_feature_vs_noise_dif %>%
+  select(-c(A_value, B_value)) %>%
+  pivot_wider(id_cols = c(Var1, Var2), names_from=scag, values_from=dif_value)
+  
+top_scags(scag_df) %>%
+  arrange(desc(value))
+  
 ```
 
+## 2) The Functions (Using the Projection Persuit Index)
+### a) projections persuit
+### b) The functions I ended up using
+## 3) Tuning the Projection Persuit Indexes
+## 4) Trace plots and Results
+## 4) Improvements / Which scagnostics can be used in projection persuit + why
+- we have worked backwards here to show that the scagnsotics can be used to identify shapes and tinker the optimiser. When using scagnostics in projection persuit you would know what kind of shape you are looking for, and do a projection persuit to see if it exists anywhere in the data (While the "correct: projection would not usually be known to us, since we are trying to see if the measures work at all, we will be working backwards from the final results)
+- clumpy2 is too computationally expensive
+- not scaled globally 0 to 1
+- scagnstics do not actually scale 0 to 1, therefor the scagnostic with the biggest difference may not be convex, but sparse. cannot tell because of scaling issue.
+- more variables
+- different shapes
+
+
+##################################### SANDBOX WORK #########################################
 ## Try Projection Persuit
 Top differences were in convex, skinny, monotonic, and outlying
 
-```{r, Projection Persuit Functions}
+```{r, eval=FALSE, Projection Persuit Functions}
 # Record
 options("tourr.verbose" = TRUE)
 
@@ -211,7 +230,7 @@ save_polish <- function(numeric_data, group_vector, scag, seed = 1,
 ```
 
 
-````{r, Function Tests}
+````{r, eval=FALSE, Function Tests}
 #save_tourr test
 save_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=1, alpha=1, max.tries = 25,
            filename = "features_data/tours/tour_convex_bet_1_25_1_.rds")
@@ -257,7 +276,7 @@ animate_xy(feature_vs_noise[1:5],
 
 ```
 
-```{r, Grid Values, FvN}
+```{r, eval=FALSE, Grid Values, FvN}
 filestart <- "features_data/tours/tour"
 # First Set of Overnight Values (Convex & Skinny)
 grid_tourr(numeric_data = feature_vs_noise[1:5], 
@@ -299,7 +318,7 @@ grid_tourr(numeric_data = feature_vs_noise[1:5],
 
 ```
 
-```{r, Working Examples for animate_xy}
+```{r, eval=FALSE, Working Examples for animate_xy}
 # GEODESIC WORK
 set.seed(2)
 m <- animate_xy(feature_vs_noise[1:5],
@@ -321,7 +340,7 @@ anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "convex", "bet", seed=
 
 # Feature Vs Feature
 ## Simulate Data
-```{r}
+```{r, eval=FALSE}
 # set seed
 set.seed(2021)
 
@@ -361,7 +380,7 @@ GGally::ggpairs(feature_vs_feature, columns = c(1:5),
 ```
 
 ## Calculate Scagnostics
-```{r}
+```{r, eval=FALSE}
 # calculate scagnostics
 scags_feature_vs_feature_A <- calc_scags_wide(feature_vs_feature_A[,1:5]) %>%
   pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
@@ -377,7 +396,7 @@ scags_feature_vs_feature_dif <- scags_feature_vs_feature_A %>%
 
 ## Try Projection Persuit
 Top differences were in splines, monotonic, and outlying
-```{r, Grid Search FvF}
+```{r, eval=FALSE, Grid Search FvF}
 # (Convex and Skinny)
 grid_tourr(numeric_data = feature_vs_feature[1:5], 
            group_vector = feature_vs_feature$group,
@@ -392,7 +411,7 @@ grid_tourr(numeric_data = feature_vs_feature[1:5],
 
 # Multiple Features Vs Noise
 ## Simulate Data
-```{r}
+```{r, eval=FALSE}
 # set seed
 set.seed(2022)
 
@@ -431,7 +450,7 @@ GGally::ggpairs(mfeatures_vs_noise, columns = c(1:5),
 
 ```
 ## Calculate Scagnostics
-```{r}
+```{r, eval=FALSE}
 # calculate scagnostics
 scags_mfeatures_vs_noise_A <- calc_scags_wide(mfeatures_vs_noise_A[,1:5]) %>%
   pivot_longer(cols=3:13, names_to = "scag", values_to="A_value")
@@ -452,7 +471,7 @@ Top differences were:
 
 # Watching the Tours
 
-```{r}
+```{r, eval=FALSE}
 # watch tour
 # format: tour_scag_search_alpha_maxtries_seed_.rds
 saved_tour <- NULL
@@ -464,7 +483,7 @@ animate_xy(feature_vs_noise[1:5],
 ```
 
 # Make trace plot function from Save History
-```{r}
+```{r, eval=FALSE}
 get_trace <- function(){
   
 }
@@ -475,7 +494,7 @@ tFullPath <- as.list(tourr::interpolate(tPath))
 ```
 
 # Get last frame from animation
-```{r}
+```{r, eval=FALSE}
 last_frame <- function(numeric_data, group_data, anim_data){
   # make data into matrix
   mat_data <- as.matrix(numeric_data)
