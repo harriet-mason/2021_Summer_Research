@@ -62,7 +62,7 @@ p1 <- GGally::ggpairs(feature_vs_noise, columns = c(1:5),
 p1
 ```
 
-Any scagnsotic that can identify this shape in projection pursuit should also be able to pick the shape from a collection pairwise plots. This is how we are going to select the projection pursuit index. Here we calculate each scagnostic for each possible pairwise plot separately for each group. We then calculate the absolute difference between these scagnostic values for each group. The scagnostics that have their maximum group difference on the x1 and x4 pair can "see" the shape. The measure that has the largest difference is the best scagnostic to use in projection persuit. The table below has the difference between the groups and the associated variable pair for each scagnostic. The scagnostics convex and skinny are the best choise
+Any scagnsotic that can identify this shape in projection pursuit should also be able to pick the shape from a collection pairwise plots. This is how we are going to select the projection pursuit index. Here we calculate each scagnostic, for each possible pairwise plot, separately for each group. We then calculate the absolute difference between these values for each group. The scagnostics that have their maximum group difference on the x1 and x4 pair can "see" the shape. The table below has the difference between the groups and the associated variable pair for each scagnostic. The scagnostics convex and skinny are the best choice for projection pursuit and we will continue with those measures.
 
 ```{r, eval=FALSE scagcals, fig.cap= "The top pairs of variables. Convex and skinny do the best job of seeing the L-shape in group A. }
 # calculate scagnostics
