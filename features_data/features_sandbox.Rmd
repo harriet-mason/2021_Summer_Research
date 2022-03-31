@@ -87,6 +87,33 @@ top_scags(scag_df) %>%
 ```
 
 ## 2) The Functions (Using the Projection Persuit Index)
+Scagnostics can be easily integrated into the `tourr` projection pursuit by defining an index to be optimised in the guided tour. The scagnostic index function takes a vector containing the class of each observation (cl) and a string depicting which scagnostic should be used (scag). The index maximises the absolute difference in that scagnostic across the groups, the same calculation we used to identify which scagnsotic to use in projection pursuit. Only the scagnsotics that are rationally invariant and computationally efficient enough to be used in projection pursuit are options in this function. 
+
+```{r, Function, echo=TRUE}
+# Scag Projection Persuit index
+scags_groups <- function(cl, scag){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+    
+    indx <- list( #copy and pasting should be cleaned up
+      "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
+      "monotonic" = (sc_monotonic(x = group1[,1], y = group1[,2]) - sc_monotonic(x = group2[,1], y = group2[,2])),
+      "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
+      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
+      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2]))
+      )
+    
+    #final value
+    abs(indx[[scag]])
+  }
+}
+```
+
+
+
 ### a) projections persuit
 ### b) The functions I ended up using
 ## 3) Tuning the Projection Persuit Indexes
@@ -108,26 +135,7 @@ Top differences were in convex, skinny, monotonic, and outlying
 # Record
 options("tourr.verbose" = TRUE)
 
-# Scag Projection Persuit index
-scags_groups <- function(cl, scag){
-  classes <- unique(cl)
-  function(mat){
-    #each matrix group
-    group1 <- mat[which(cl==classes[1]),]
-    group2 <- mat[which(cl==classes[2]),]
-    
-    indx <- list( #copy and pasting should be cleaned up
-      "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
-      "monotonic" = (sc_monotonic(x = group1[,1], y = group1[,2]) - sc_monotonic(x = group2[,1], y = group2[,2])),
-      "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
-      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
-      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2]))
-      )
-    
-    #final value
-    abs(indx[[scag]])
-  }
-}
+
 
 # Save Tour Function 
 save_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, max.tries, filename, ...){
