@@ -86,7 +86,8 @@ top_scags(scag_df) %>%
   
 ```
 
-## 2) The Functions (Using the Projection Persuit Index)
+## 2) The Scagnostics Index Function 
+
 Scagnostics can be easily integrated into the `tourr` projection pursuit by defining an index to be optimised in the guided tour. The scagnostic index function takes a vector containing the class of each observation (cl) and a string depicting which scagnostic should be used (scag). The index maximises the absolute difference in that scagnostic across the groups, the same calculation we used to identify which scagnsotic to use in projection pursuit. Only the scagnsotics that are rationally invariant and computationally efficient enough to be used in projection pursuit are options in this function. 
 
 ```{r, Function, echo=TRUE}
@@ -116,11 +117,10 @@ scags_groups <- function(cl, scag){
 }
 ```
 
-
-
-### a) projections persuit
-### b) The functions I ended up using
 ## 3) Tuning the Projection Persuit Indexes
+
+
+
 ## 4) Trace plots and Results
 ## 4) Improvements / Which scagnostics can be used in projection persuit + why
 - we have worked backwards here to show that the scagnsotics can be used to identify shapes and tinker the optimiser. When using scagnostics in projection persuit you would know what kind of shape you are looking for, and do a projection persuit to see if it exists anywhere in the data (While the "correct: projection would not usually be known to us, since we are trying to see if the measures work at all, we will be working backwards from the final results)
