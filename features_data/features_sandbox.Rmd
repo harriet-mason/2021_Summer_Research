@@ -98,12 +98,16 @@ scags_groups <- function(cl, scag){
     group1 <- mat[which(cl==classes[1]),]
     group2 <- mat[which(cl==classes[2]),]
     
-    indx <- list( #copy and pasting should be cleaned up
+    indx <- list( #monotonic is not rotationally invariant, clumpy2 cannot be computed
       "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
-      "monotonic" = (sc_monotonic(x = group1[,1], y = group1[,2]) - sc_monotonic(x = group2[,1], y = group2[,2])),
       "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
       "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
-      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2]))
+      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2])),
+      "stringy" = (sc_stringy(x = group1[,1], y = group1[,2]) - sc_stringy(x = group2[,1], y = group2[,2])),
+      "striated2" = (sc_striated2(x = group1[,1], y = group1[,2]) - sc_striated2(x = group2[,1], y = group2[,2])),
+      "sparse" = (sc_sparse(x = group1[,1], y = group1[,2]) - sc_sparse(x = group2[,1], y = group2[,2])),
+      "skewed" = (sc_skewed(x = group1[,1], y = group1[,2]) - sc_skewed(x = group2[,1], y = group2[,2])),
+      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
       )
     
     #final value
