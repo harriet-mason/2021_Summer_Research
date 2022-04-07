@@ -118,7 +118,29 @@ scags_groups <- function(cl, scag){
 ```
 
 ## 3) Tuning the Projection Persuit Indexes
+The scagnostics can find the correct shape more often than not, but this is only with some adjustments to the optimization parameters. Below is an example of the tour projection persuit using the skinny scagnostic to find the l-shape projection using adjusted parameters, and failling to find the l-shape in the data with the default parameters.
 
+```{r}
+# GEODESIC WORK
+set.seed(2)
+m <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex")),
+                delta=0.05,
+                col = feature_vs_noise$group)
+ # BETTER WORK
+set.seed(7)
+m <- animate_xy(feature_vs_noise[1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                        search_f = search_better,
+                                        alpha=0.75),
+                col = feature_vs_noise$group)
+
+# DEFAULT DOES NOT WORK
+animate_xy(feature_vs_noise[1:5],
+           tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                   search_f = search_better),
+           col = feature_vs_noise$group)
+```
 
 
 ## 4) Trace plots and Results
