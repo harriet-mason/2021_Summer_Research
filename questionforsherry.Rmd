@@ -1,0 +1,177 @@
+---
+title: "Question for Sherry"
+author: "Harriet Mason"
+date: "08/04/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, loadlibraries}
+library(tidyverse)
+library(cassowaryr)
+library(tourr)
+library(ferrn)
+```
+
+# Issue
+OK, so basically I can't use the scagnostic index function when I use the explore_space_pca() function. Since the scagnostic index is written up similar to lda_pp(), they are called similarly. I couldn't find an example for lda_pp() so I'm not sure if it is supposed to be called differently. 
+
+# Data
+ This is the data I'm working with and its trying to get to the projection that is just x1 and x4.
+```{r simdata, fig.cap= "A scatter plot matrix of the simulated 'L-shape vs noise' data. The shape can be seen in the x1 vs x4 pairwise plot in group A."}
+# set seed
+set.seed(2020)
+
+# get L-shape data
+lshape <- features %>% 
+  filter(feature=="l-shape")
+
+# make tibble group a
+feature_vs_noise_A <- tibble(x1 = 2.5* cassowaryr:::unitize(lshape$x),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = 2.5* cassowaryr:::unitize(lshape$y),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("A",100)
+                           )
+
+# Make tibble group b
+feature_vs_noise_B <- tibble(x1 = rnorm(100, 0.5, 1),
+                           x2 = rnorm(100, 0.5, 1),
+                           x3 = rnorm(100, 0.5, 1),
+                           x4 = rnorm(100, 0.5, 1),
+                           x5 = rnorm(100, 0.5, 1),
+                           group = rep("B",100)
+                           )
+
+
+# combine tibbles
+feature_vs_noise <- bind_rows(feature_vs_noise_A, feature_vs_noise_B)
+
+# final tibble and ggpairs check
+p1 <- GGally::ggpairs(feature_vs_noise, columns = c(1:5),
+                ggplot2::aes(colour = group, alpha=0.5))+ 
+  theme_minimal()
+  
+
+p1
+```
+
+# Index Function
+This is the index function I'm using. It basically just calculates the group differences in the scagnostic chosen for that projection. Takes a class argument like lda_pp(), but also has the scag option.
+
+```{r, Function, echo=TRUE}
+# Scag Projection Persuit index
+scags_groups <- function(cl, scag){
+  classes <- unique(cl)
+  function(mat){
+    #each matrix group
+    group1 <- mat[which(cl==classes[1]),]
+    group2 <- mat[which(cl==classes[2]),]
+    indx <- list(
+      "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
+      "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
+      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
+      "skinny" = (sc_skinny(x = group1[,1], y = group1[,2]) - sc_skinny(x = group2[,1], y = group2[,2])),
+      "stringy" = (sc_stringy(x = group1[,1], y = group1[,2]) - sc_stringy(x = group2[,1], y = group2[,2])),
+      "striated2" = (sc_striated2(x = group1[,1], y = group1[,2]) - sc_striated2(x = group2[,1], y = group2[,2])),
+      "sparse" = (sc_sparse(x = group1[,1], y = group1[,2]) - sc_sparse(x = group2[,1], y = group2[,2])),
+      "skewed" = (sc_skewed(x = group1[,1], y = group1[,2]) - sc_skewed(x = group2[,1], y = group2[,2])),
+      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2]))
+      )
+    
+    #final value
+    abs(indx[[scag]])
+    
+  }
+}
+```
+
+It works fine if I run it as a tour projection persuit index, and occasionally finds the shape we are looking for (so its all good in that reguard).
+
+```{r}
+set.seed(7)
+a <- animate_xy(feature_vs_noise[,1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                        search_f = search_better,
+                                        alpha=0.75),
+                col = feature_vs_noise$group)
+set.seed(6)
+b <- animate_xy(feature_vs_noise[,1:5],
+                tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
+                                        search_f = search_better,
+                                        alpha=0.75),
+                col = feature_vs_noise$group)
+```
+
+This funtion just shows the best projection of the tours above so I could check if it found the right shape. 
+
+```{r}
+
+last_frame <- function(numeric_data, group_data, anim_data){
+  # make data into matrix
+  mat_data <- as.matrix(numeric_data)
+  mat_basis <- matrix(unlist(get_best(anim_data)$basis), ncol=2, nrow=5)
+  
+  # transform data to basis
+  plot_data <- as_tibble(mat_data %*% mat_basis) %>%
+    rename(x = V1, y = V2)
+  plot_data$group <- group_data
+  
+  # get basis data for segment plots
+  basis_data <- as_tibble(matrix(unlist(get_best(anim_data)$basis), ncol=2, nrow=5)) %>%
+    rename(xend = V1, yend = V2) %>%
+    mutate(x=0, y=0, xend=5*xend, yend=5*yend)
+  basis_data$variable = c("x1", "x2", "x3", "x4", "x5")
+  
+  #plot ggplot
+  ggplot(plot_data, aes(x,y)) + 
+    geom_point(aes(colour=group)) +
+    theme_classic() +
+    geom_segment(data=basis_data, aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=basis_data, aes(x=xend, y=yend, label=variable)) +
+    theme(axis.line = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank())
+
+}
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, a)
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, b)
+
+```
+
+The trace plot functions from the ferrn package work, so the problem isn't the a or b data sets.
+
+```{r}
+a %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical() + ggtitle("Seed 7")
+
+b %>% 
+  explore_trace_interp() + 
+  scale_color_continuous_botanical() + ggtitle("Seed 6")
+```
+
+But the explore_space_pca() function throws an error "group1[, 1] : incorrect number of dimensions". I know that this error is from is code from inside the scagnsotic index function when it splits the data based upon the groups. I can't remove the groups or scag function from the index, so I'm not sure how to use it.
+
+```{r}
+bind_rows(a, b) %>%
+  bind_theoretical(matrix(c(1, 0, 0, 1, 0), nrow = 5),
+                   index = scags_groups(feature_vs_noise$group, "convex"), 
+                   raw_data = feature_vs_noise[, 1:5]) %>% 
+  explore_space_pca(group = method, details = TRUE)  +
+  scale_color_discrete_botanical()
+```
+
+The example works fine so I dont think the problem is my computer running ferrn haha.
+
+```{r}
+# Example
+dplyr::bind_rows(holes_1d_geo, holes_1d_better) %>%
+  bind_theoretical(matrix(c(0, 1, 0, 0, 0), nrow = 5),
+    index = tourr::holes(), raw_data = boa5
+  ) %>%
+  explore_space_pca(group = method, details = TRUE) +
+  scale_color_discrete_botanical()
+```

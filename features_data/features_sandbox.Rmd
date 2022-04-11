@@ -98,8 +98,7 @@ scags_groups <- function(cl, scag){
     #each matrix group
     group1 <- mat[which(cl==classes[1]),]
     group2 <- mat[which(cl==classes[2]),]
-    
-    indx <- list( #monotonic is not rotationally invariant, clumpy2 cannot be computed
+    indx <- list(
       "convex" = (sc_convex(x = group1[,1], y = group1[,2]) - sc_convex(x = group2[,1], y = group2[,2])),
       "outlying" = (sc_outlying(x = group1[,1], y = group1[,2]) - sc_outlying(x = group2[,1], y = group2[,2])),
       "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
@@ -108,11 +107,12 @@ scags_groups <- function(cl, scag){
       "striated2" = (sc_striated2(x = group1[,1], y = group1[,2]) - sc_striated2(x = group2[,1], y = group2[,2])),
       "sparse" = (sc_sparse(x = group1[,1], y = group1[,2]) - sc_sparse(x = group2[,1], y = group2[,2])),
       "skewed" = (sc_skewed(x = group1[,1], y = group1[,2]) - sc_skewed(x = group2[,1], y = group2[,2])),
-      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2])),
+      "splines" = (sc_splines(x = group1[,1], y = group1[,2]) - sc_splines(x = group2[,1], y = group2[,2]))
       )
     
     #final value
     abs(indx[[scag]])
+    
   }
 }
 ```
@@ -120,7 +120,7 @@ scags_groups <- function(cl, scag){
 ## 3) Tuning the Projection Persuit Indexes
 The scagnostics can find the correct shape more often than not, but this is only with some adjustments to the optimization parameters. Below is an example of the tour projection persuit using the skinny scagnostic to find the l-shape projection using adjusted parameters, and failling to find the l-shape in the data with the default parameters.
 
-```{r}
+```{r, eval=FALSE}
 # GEODESIC WORK
 set.seed(2)
 m <- animate_xy(feature_vs_noise[1:5],
@@ -141,6 +141,10 @@ animate_xy(feature_vs_noise[1:5],
                                    search_f = search_better),
            col = feature_vs_noise$group)
 ```
+
+###########################
+
+
 
 
 ## 4) Trace plots and Results
@@ -556,12 +560,12 @@ last_frame <- function(numeric_data, group_data, anim_data){
           axis.text = element_blank())
 
 }
-
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, b)
 
 saved_anim <- anim_tourr(feature_vs_noise[1:5], feature_vs_noise$group, "skinny", "bet", 7, 0.7, 500, "anim")
 saved_tour <- NULL
-saved_anim <- readRDS("anim_skinny_bet_0.7_500_7_.rds")
-last_frame(feature_vs_noise[1:5], feature_vs_noise$group, check)
+saved_anim <- a
+last_frame(feature_vs_noise[1:5], feature_vs_noise$group, b)
 
 numeric_data <- feature_vs_noise[1:5]
 group_data <- feature_vs_noise$group
