@@ -3,6 +3,8 @@ title: "Projection Pursuit Write Up"
 author: "Harriet Mason"
 date: "21/04/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -121,8 +123,8 @@ The scagnostics can find the correct shape more often than not, but this is only
 ```{r, Tourgrid}
 # First make a function that animates the tour. This can be done in a for loop but for the large calculations im doing this makes it easier
 
-# Animate Tour Function
-anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, max.tries, filestart){
+# Animate Tour Function: Function just runs a tour and saves it as as an r object
+anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, max.tries, filename){
   #set seed
   set.seed(seed)
   
@@ -144,7 +146,7 @@ anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, ma
   
   #save object and file name
   a <- srch[[search]]
-  filename <- paste(filestart, scag, search, alpha, max.tries, seed, ".rds", sep="_")
+  #filename <- paste(filestart, scag, search, alpha, max.tries, seed, ".rds", sep="_")
   
   # add in identifiers for explort_pca plot
   a <- a %>%
@@ -157,7 +159,7 @@ anim_tourr <- function(numeric_data, group_vector, scag, search, seed, alpha, ma
   saveRDS(a, filename)
 }
 
-
+# set up a function that lets us run that animate tour function over a grid of values
 grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, alpha, max.tries, filestart, ...){
   #make expanded tibble so that we can search a grid of values
   expand.grid(scags, searches, seeds, alpha, max.tries, stringsAsFactors=FALSE) %>%
@@ -170,17 +172,19 @@ grid_tourr <- function(numeric_data, group_vector, scags, searches, seeds, alpha
 }
 
 # Make a small grid to run all the tours on
-scagnostics <- c("skinny")
-maxtries <- 100
+scags <- c("skinny")
+max.tries <- 100
 alpha <- c(0.1, 0.7)
-seed <- 1
+seeds <- 1
 
 # Run Tours
-grid_tourr()
+grid_tourr(feature_vs_noise[,1:5], feature_vs_noise$group, scags, "bet", seeds, alpha, max.tries, "writeuptours/")
+
 
 # read them back into R and combine into one tibble
 
 
+# Explore PCA plot
 
 ```
 
