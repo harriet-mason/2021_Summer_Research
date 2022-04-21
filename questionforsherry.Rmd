@@ -97,10 +97,10 @@ a <- animate_xy(feature_vs_noise[,1:5],
                                         search_f = search_better,
                                         alpha=0.75),
                 col = feature_vs_noise$group)
-set.seed(6)
+set.seed(7)
 b <- animate_xy(feature_vs_noise[,1:5],
                 tour_path = guided_tour(scags_groups(feature_vs_noise$group, "convex"),
-                                        search_f = search_better,
+                                        search_f = search_better_random,
                                         alpha=0.75),
                 col = feature_vs_noise$group)
 ```
@@ -146,21 +146,30 @@ The trace plot functions from the ferrn package work, so the problem isn't the a
 ```{r}
 a %>% 
   explore_trace_interp() + 
-  scale_color_continuous_botanical() + ggtitle("Seed 7")
+  scale_color_continuous_botanical() + ggtitle("Search Better")
 
 b %>% 
   explore_trace_interp() + 
-  scale_color_continuous_botanical() + ggtitle("Seed 6")
+  scale_color_continuous_botanical() + ggtitle("Search Better Random")
 ```
 
 But the explore_space_pca() function throws an error "group1[, 1] : incorrect number of dimensions". I know that this error is from is code from inside the scagnsotic index function when it splits the data based upon the groups. I can't remove the groups or scag function from the index, so I'm not sure how to use it.
 
 ```{r}
+#when differentiating by search
 bind_rows(a, b) %>%
-  bind_theoretical(matrix(c(1, 0, 0, 1, 0), nrow = 5),
+  bind_theoretical(matrix(c(1, 0, 0, 0, 0, 0, 0, 0, 1, 0), nrow = 5),
                    index = scags_groups(feature_vs_noise$group, "convex"), 
                    raw_data = feature_vs_noise[, 1:5]) %>% 
   explore_space_pca(group = method, details = TRUE)  +
+  scale_color_discrete_botanical()
+
+# when differentiating by seed
+bind_rows(a %>% mutate(trail = "a"), b %>% mutate(trail = "b")) %>%
+  bind_theoretical(matrix(c(1, 0, 0, 0, 0, 0, 0, 0, 1, 0), nrow = 5),
+                   index = scags_groups(feature_vs_noise$group, "convex"), 
+                   raw_data = feature_vs_noise[, 1:5]) %>% 
+  explore_space_pca(group = trail, details = TRUE)  +
   scale_color_discrete_botanical()
 ```
 
